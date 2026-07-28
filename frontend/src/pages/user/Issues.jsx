@@ -275,18 +275,6 @@ export default function Issues() {
 
   return (
     <div className="animate-slide-in max-w-6xl w-full mx-auto pb-12 space-y-8">
-      {/* HEADER PAGE */}
-      <div>
-        <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
-          <HelpCircle className="text-blue-500" />
-          {language === "en" ? "Support Center" : "Trung tâm hỗ trợ"}
-        </h2>
-        <p className="text-sm font-medium text-slate-400 dark:text-slate-500 mt-1">
-          {language === "en"
-            ? "Submit support tickets and track resolution status in real-time."
-            : "Gửi các yêu cầu hỗ trợ và theo dõi kết quả xử lý trực tiếp."}
-        </p>
-      </div>
 
       {/* SECTION 1: SUBMIT NEW TICKET */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800">

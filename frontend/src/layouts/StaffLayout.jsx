@@ -20,12 +20,12 @@ export default function StaffLayout() {
     const navigationItems = [
         {
             path: "/staff/checkin",
-            label: language === 'en' ? "Check-In" : "Cho xe vào cổng",
+            label: language === 'en' ? "Gate Entry" : "Xe vào",
             icon: <LogIn size={20} />,
         },
         {
             path: "/staff/checkout",
-            label: language === 'en' ? "Check-Out" : "Thanh toán xe ra",
+            label: language === 'en' ? "Gate Exit & Payment" : "Xe ra",
             icon: <LogOut size={20} />,
         },
         {
@@ -35,17 +35,17 @@ export default function StaffLayout() {
         },
         {
             path: "/staff/incidents",
-            label: language === 'en' ? "Incident Handling" : "Xử lý sự cố",
+            label: language === 'en' ? "Incident Handling" : "Quản lý sự cố",
             icon: <AlertTriangle size={20} />,
         },
         {
             path: "/staff/slots",
-            label: language === 'en' ? "Slot Management" : "Giám sát ô đỗ",
+            label: language === 'en' ? "Slot Management" : "Quản lý ô đỗ ",
             icon: <Map size={20} />,
         },
         {
             path: "/staff/booking-reconciliation",
-            label: "Booking Record",
+            label: language === 'en' ? "Booking Record" : "Đặt trước",
             icon: <CalendarCheck size={20} />,
         },
     ];

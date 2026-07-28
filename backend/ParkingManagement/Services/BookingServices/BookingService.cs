@@ -10,6 +10,8 @@ using ParkingManagement.Repositories;
 using ParkingManagement.Services.Helpers;
 using ParkingManagement.Utils;
 
+using ParkingManagement.Services.EmailServices;
+
 namespace ParkingManagement.Services.BookingServices;
 
 public class BookingService : IBookingService
@@ -42,12 +44,14 @@ public class BookingService : IBookingService
     private readonly AppDbContext _context;
     private readonly IParkingRepository _parkingRepo;
     private readonly PayOS.PayOSClient _payOS;
+    private readonly IEmailService _emailService;
 
-    public BookingService(AppDbContext context, IParkingRepository parkingRepo, PayOS.PayOSClient payOS)
+    public BookingService(AppDbContext context, IParkingRepository parkingRepo, PayOS.PayOSClient payOS, IEmailService emailService)
     {
         _context = context;
         _parkingRepo = parkingRepo;
         _payOS = payOS;
+        _emailService = emailService;
     }
 
     // ─── GET PRICE ESTIMATE ────────────────────────────────────────────────────
@@ -379,6 +383,29 @@ public class BookingService : IBookingService
                 }
 
                 await transaction.CommitAsync();
+
+                // Send email notification upon cancellation
+                try
+                {
+                    var usr = await _context.Users.FirstOrDefaultAsync(u => u.UserId == booking.VehicleUserId);
+                    if (usr != null && !string.IsNullOrWhiteSpace(usr.Email))
+                    {
+                        decimal refund = await _context.Payments
+                            .Where(p => p.BookingId == booking.BookingId && p.Status == "SUCCESS")
+                            .SumAsync(p => (decimal?)p.AmountPaid) ?? 0m;
+
+                        string userName = usr.FullName ?? usr.Username ?? "Quý khách";
+                        string htmlBody = EmailTemplateHelper.BuildBookingCancelledEmailHtml(
+                            userName, booking.BookingId, booking.LicensePlate, refund);
+
+                        string subject = $"[eParking] Thông báo hủy đặt chỗ thành công - Đơn #{booking.BookingId}";
+                        _ = _emailService.SendEmailAsync(usr.Email, subject, htmlBody);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[CancelEmail Error] {ex.Message}");
+                }
 
                 return await MapToBookingResponseAsync(booking);
             }

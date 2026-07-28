@@ -149,13 +149,13 @@ export default function UserDashboard() {
         try {
           const bookingsRes = await api.get("/bookings/my");
           if (bookingsRes.data?.success && bookingsRes.data.data.length > 0) {
-             // Filter out cancelled and completed; only keep confirmed / active
-             const eligible = bookingsRes.data.data.filter((bk) => {
-               const st = (bk.status.toLowerCase() === "active" && !bk.actual_check_in)
-                 ? "confirmed"
-                 : bk.status.toLowerCase();
-               return st === "confirmed" || st === "active";
-             });
+            // Filter out cancelled and completed; only keep confirmed / active
+            const eligible = bookingsRes.data.data.filter((bk) => {
+              const st = (bk.status.toLowerCase() === "active" && !bk.actual_check_in)
+                ? "confirmed"
+                : bk.status.toLowerCase();
+              return st === "confirmed" || st === "active";
+            });
 
             if (eligible.length === 0) { setRecentBooking(null); return; }
 
@@ -441,13 +441,13 @@ export default function UserDashboard() {
                             {language === "en" ? "Vehicle Type" : "Loại xe"}
                           </th>
                           <th className="py-3 px-4 font-semibold text-[10px] uppercase text-slate-500 dark:text-slate-400">
-                            {language === "en" ? `Base Price (${baseHoursLabel})` : `Giá cổng (${baseHoursLabel})`}
+                            {language === "en" ? `First ${baseHoursLabel}` : ` ${baseHoursLabel} đầu tiên`}
                           </th>
                           <th className="py-3 px-4 font-semibold text-[10px] uppercase text-slate-500 dark:text-slate-400">
-                            {language === "en" ? `Subsequent (${subsequentHoursLabel})` : `Block sau (${subsequentHoursLabel})`}
+                            {language === "en" ? `After ${baseHoursLabel}` : `Sau ${baseHoursLabel}`}
                           </th>
                           <th className="py-3 px-4 font-semibold text-[10px] uppercase text-slate-500 dark:text-slate-400 text-right">
-                            {language === "en" ? "Daily Max (24H)" : "Trần 24H"}
+                            {language === "en" ? "Daily Max (24H)" : "Mức phí tối đa (24H)"}
                           </th>
                         </tr>
                       </thead>
@@ -476,15 +476,15 @@ export default function UserDashboard() {
                               </td>
                               {/* Col 2: Base Price */}
                               <td className="py-3 px-4 text-sm font-semibold text-slate-700 dark:text-slate-350">
-                                {fmtVND(policy.base_price)}đ
+                                {fmtVND(policy.base_price)} VNĐ
                               </td>
                               {/* Col 3: Subsequent */}
                               <td className="py-3 px-4 text-sm font-semibold text-slate-700 dark:text-slate-350">
-                                +{fmtVND(policy.subsequent_rate)}đ
+                                {fmtVND(policy.subsequent_rate)} VNĐ/H
                               </td>
                               {/* Col 4: Daily Max */}
                               <td className="py-3 px-4 text-sm font-bold text-emerald-600 dark:text-emerald-400 text-right">
-                                {fmtVND(policy.daily_max_price)}đ
+                                {fmtVND(policy.daily_max_price)} VNĐ
                               </td>
                             </tr>
                           );
@@ -498,7 +498,7 @@ export default function UserDashboard() {
                     <p className="margin-0 text-[11px]">
                       {language === "en"
                         ? `Lost ticket fee is ${fmtVND(lostFee)}đ. Overnight parking is available and secure.`
-                        : `Phí mất vé là ${fmtVND(lostFee)}đ. Có chỗ đỗ xe qua đêm an toàn.`}
+                        : `Phí mất vé là ${fmtVND(lostFee)} VNĐ. Có chỗ đỗ xe qua đêm an toàn.`}
                     </p>
                   </div>
                 </>
@@ -697,13 +697,12 @@ export default function UserDashboard() {
                   </div>
 
                   {/* Stats row — identical to Landing Page */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
                     {[
                       [totalLiveSlots > 0 ? String(totalLiveSlots) : "—", language === "en" ? "Parking Spots" : "Tổng chỗ đỗ"],
-                      ["98%", language === "en" ? "On-time Check-in" : "Đúng giờ"],
                       ["24/7", language === "en" ? "Open" : "Hoạt động"],
                     ].map(([val, lbl], i) => (
-                      <div key={lbl} style={{ padding: "14px 0", textAlign: "center", borderRight: i < 2 ? "1px solid #e2e8f0" : "none" }}>
+                      <div key={lbl} style={{ padding: "14px 0", textAlign: "center", borderRight: i < 1 ? "1px solid #e2e8f0" : "none" }}>
                         <div style={{ fontSize: 18, fontWeight: 700, color: "#1d4ed8" }}>{val}</div>
                         <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{lbl}</div>
                       </div>
@@ -739,7 +738,7 @@ export default function UserDashboard() {
               statusText = language === "en" ? "Active" : "Đang đỗ";
               badgeClass = "bg-emerald-500 ring-4 ring-emerald-500/25";
             } else if (isConfirmed) {
-              statusText = language === "en" ? "Upcoming" : "Đã xác nhận";
+              statusText = language === "en" ? "Upcoming" : "Sắp tới";
               badgeClass = "bg-yellow-500 ring-4 ring-yellow-500/25 animate-pulse";
             } else {
               statusText = language === "en" ? "Completed" : "Hoàn tất";

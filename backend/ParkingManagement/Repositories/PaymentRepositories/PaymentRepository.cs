@@ -7,15 +7,51 @@ using ParkingManagement.Services.Helpers;
 
 using System.Linq;
 
+using ParkingManagement.Services.EmailServices;
+
 namespace ParkingManagement.Repositories
 {
     public class PaymentRepository : IPaymentRepository
     {
         private readonly AppDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public PaymentRepository(AppDbContext context)
+        public PaymentRepository(AppDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
+        }
+
+        private async Task SendPaymentEmailNotificationAsync(string bookingId, string paymentMethod, string transactionId, decimal amountPaid)
+        {
+            try
+            {
+                var booking = await _context.Bookings
+                    .Include(b => b.VehicleUser)
+                    .Include(b => b.VehicleType)
+                    .FirstOrDefaultAsync(b => b.BookingId == bookingId);
+
+                if (booking != null && booking.VehicleUser != null && !string.IsNullOrWhiteSpace(booking.VehicleUser.Email))
+                {
+                    string userName = booking.VehicleUser.FullName ?? booking.VehicleUser.Username ?? "Quý khách";
+                    string vehicleType = booking.VehicleType?.VehicleTypeName ?? (booking.VehicleTypeId == 2 ? "Ô tô" : "Xe máy");
+                    string recipientEmail = booking.VehicleUser.Email;
+                    string bkgId = booking.BookingId;
+                    string plate = booking.LicensePlate;
+                    DateTime arrival = booking.ExpectedArrival;
+                    DateTime departure = booking.ExpiredAt ?? booking.ExpectedArrival.AddHours(2);
+
+                    string htmlBody = EmailTemplateHelper.BuildPaymentSuccessEmailHtml(
+                        userName, bkgId, plate, vehicleType, arrival, departure, amountPaid, paymentMethod, transactionId);
+
+                    string subject = $"[eParking] Xác nhận thanh toán thành công - Đơn đặt chỗ #{bkgId}";
+                    _ = _emailService.SendEmailAsync(recipientEmail, subject, htmlBody);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PaymentEmailNotification Error] {ex.Message}");
+            }
         }
 
         public async Task<Booking?> GetBookingByIdAsync(string bookingId)
@@ -75,6 +111,11 @@ namespace ParkingManagement.Repositories
 
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
+
+                        if (!string.IsNullOrEmpty(payment.BookingId))
+                        {
+                            await SendPaymentEmailNotificationAsync(payment.BookingId, payment.PaymentMethod ?? "VNPAY", payment.TransactionId ?? transactionId, amountPaid);
+                        }
                     }
                 }
                 catch (Exception)
@@ -131,6 +172,8 @@ namespace ParkingManagement.Repositories
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
+
+                    await SendPaymentEmailNotificationAsync(bookingId, paymentMethod, payment.TransactionId ?? "MOCK_PAYMENT", amount);
                     return true;
                 }
                 catch (Exception)

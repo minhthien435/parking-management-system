@@ -12,8 +12,8 @@ export default function AdminLayout() {
   const { language } = useLanguage();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const navigationItems = [
-    { path: '/admin', label: language === 'en' ? 'Users' : 'Tài khoản', icon: <Users size={20} /> },
-    { path: '/admin/logs', label: language === 'en' ? 'System Logs' : 'Nhật ký phân quyền', icon: <Terminal size={20} /> },
+    { path: '/admin', label: language === 'en' ? 'User Accounts' : 'Quản lý người dùng', icon: <Users size={20} /> },
+    { path: '/admin/logs', label: language === 'en' ? 'System Logs' : 'Nhật ký hệ thống', icon: <Terminal size={20} /> },
   ]
 
   return (

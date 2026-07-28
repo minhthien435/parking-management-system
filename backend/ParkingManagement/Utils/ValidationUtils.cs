@@ -41,21 +41,31 @@ namespace ParkingManagement.Utils
             if (string.IsNullOrEmpty(licensePlate)) return;
 
             var cleanPlate = licensePlate.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper();
+
+            // 1. Chỉ so sánh với các đơn đặt chỗ ĐANG HOẠT ĐỘNG (Bỏ qua hoàn toàn các đơn CANCELLED, EXPIRED, COMPLETED)
             var existingDifferentTypeBooking = await context.Bookings
                 .FirstOrDefaultAsync(b => b.LicensePlate.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() == cleanPlate 
+                                          && b.Status != "CANCELLED"
+                                          && b.Status != "EXPIRED"
+                                          && b.Status != "COMPLETED"
                                           && b.VehicleTypeId != vehicleTypeId);
 
             if (existingDifferentTypeBooking != null)
             {
-                if (existingDifferentTypeBooking.VehicleTypeId == 1 && vehicleTypeId == 2)
-                {
-                    throw new InvalidOperationException("Biển số xe này đã được đăng ký cho loại phương tiện là Xe máy. Vui lòng kiểm tra lại loại xe hoặc biển số.");
-                }
-                else
-                {
-                    var existingTypeName = existingDifferentTypeBooking.VehicleTypeId == 1 ? "Xe máy" : "Xe hơi";
-                    throw new InvalidOperationException($"Biển số xe này đã được đăng ký cho loại phương tiện là {existingTypeName}. Vui lòng kiểm tra lại loại xe hoặc biển số.");
-                }
+                var existingTypeName = existingDifferentTypeBooking.VehicleTypeId == 1 ? "Xe máy" : "Xe hơi";
+                throw new InvalidOperationException($"Biển số xe này đang có một đơn đặt chỗ hoạt động với loại phương tiện là {existingTypeName}. Vui lòng kiểm tra lại loại xe hoặc biển số.");
+            }
+
+            // 2. Kiểm tra nếu xe đang thực sự gửi ở trong bãi (ParkingSession status = ACTIVE)
+            var activeSession = await context.ParkingSessions
+                .FirstOrDefaultAsync(ps => ps.LicensePlateIn.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() == cleanPlate
+                                          && ps.Status == "ACTIVE"
+                                          && ps.VehicleTypeId != vehicleTypeId);
+
+            if (activeSession != null)
+            {
+                var activeTypeName = activeSession.VehicleTypeId == 1 ? "Xe máy" : "Xe hơi";
+                throw new InvalidOperationException($"Xe mang biển số này đang đỗ trong bãi với loại phương tiện là {activeTypeName}. Vui lòng kiểm tra lại.");
             }
         }
     }
