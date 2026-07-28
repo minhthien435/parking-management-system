@@ -14,76 +14,105 @@ import {
   Phone,
   Mail,
   Clock,
+  Globe,
 } from "lucide-react";
 import api from "../utils/api";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../hooks/useLanguage";
 
 
 // ─── Static content ───────────────────────────────────────────────────────────
-const FEATURES = [
+const getFeatures = (lang) => [
   {
     icon: CalendarCheck,
-    title: "Advance Booking",
-    desc: "Reserve a spot 1 to 8 hours ahead. Your slot is held for up to 30 minutes past your arrival time — no stress about losing it.",
+    title: lang === "en" ? "Advance Booking" : "Đặt chỗ trước",
+    desc: lang === "en"
+      ? "Reserve a spot 1 to 8 hours ahead. Your slot is held for up to 30 minutes past your arrival time — no stress about losing it."
+      : "Giữ chỗ đỗ trước từ 1 đến 8 tiếng. Vị trí được giữ thêm tới 30 phút sau giờ hẹn — không lo hết chỗ.",
   },
   {
     icon: Scan,
-    title: "Automatic Check-in",
-    desc: "Cameras read your license plate at the gate. No app needed, no access card — just drive in.",
+    title: lang === "en" ? "Automatic Check-in" : "Xe vào tự động",
+    desc: lang === "en"
+      ? "Cameras read your license plate at the gate. No app needed, no access card — just drive in."
+      : "Camera AI tự động nhận diện biển số xe tại cổng. Không cần thẻ từ hay thao tác phức tạp — chỉ việc lái xe vào.",
   },
   {
     icon: Lock,
-    title: "Remote Vehicle Lock",
-    desc: 'Activate "Lock Vehicle" in the app after parking. A barrier blocks the exit lane until you unlock it.',
+    title: lang === "en" ? "Remote Vehicle Lock" : "Khóa xe từ xa",
+    desc: lang === "en"
+      ? 'Activate "Lock Vehicle" in the app after parking. A barrier blocks the exit lane until you unlock it.'
+      : "Bật tính năng 'Khóa xe' trên ứng dụng sau khi đỗ. Cổng barrier sẽ tự động chặn xe ra cho tới khi bạn mở khóa.",
   },
   {
     icon: Bell,
-    title: "Smart Reminders",
-    desc: "Get notified before your booking starts and warned when time is running low — extend your stay or leave on time.",
+    title: lang === "en" ? "Smart Reminders" : "Nhắc nhở thông minh",
+    desc: lang === "en"
+      ? "Get notified before your booking starts and warned when time is running low — extend your stay or leave on time."
+      : "Nhận thông báo nhắc trước giờ hẹn và cảnh báo khi sắp hết thời gian gửi xe — gia hạn hoặc rời bãi đúng giờ.",
   },
   {
     icon: BarChart2,
-    title: "Live Capacity",
-    desc: "See exactly how many spots are available before you drive over. Data updates in real time.",
+    title: lang === "en" ? "Live Capacity" : "Sức chứa thời gian thực",
+    desc: lang === "en"
+      ? "See exactly how many spots are available before you drive over. Data updates in real time."
+      : "Theo dõi chính xác số ô đỗ còn trống theo thời gian thực trước khi di chuyển đến bãi.",
   },
   {
     icon: History,
-    title: "Booking History",
-    desc: "View your full history, invoices, and status for every booking — anytime, anywhere in the app.",
+    title: lang === "en" ? "Booking History" : "Lịch sử & Hóa đơn",
+    desc: lang === "en"
+      ? "View your full history, invoices, and status for every booking — anytime, anywhere in the app."
+      : "Xem lại toàn bộ lịch sử đặt chỗ, chi tiết thanh toán và hóa đơn mọi lúc mọi nơi trên ứng dụng.",
   },
 ];
 
-const STEPS = [
+const getSteps = (lang) => [
   {
     n: "1",
-    title: "Choose Vehicle Type",
-    desc: "Select car or motorbike to see available capacity and matching slots.",
+    title: lang === "en" ? "Choose Vehicle Type" : "Chọn loại xe",
+    desc: lang === "en"
+      ? "Select car or motorbike to see available capacity and matching slots."
+      : "Chọn Ô tô hoặc Xe máy để xem sức chứa và danh sách ô đỗ phù hợp.",
   },
   {
     n: "2",
-    title: "Enter Details",
-    desc: "Enter your plate number, pick arrival and departure times. The system calculates your fee instantly.",
+    title: lang === "en" ? "Enter Details" : "Nhập thông tin",
+    desc: lang === "en"
+      ? "Enter your plate number, pick arrival and departure times. The system calculates your fee instantly."
+      : "Nhập biển số xe, chọn giờ vào và giờ ra. Hệ thống tính phí tự động ngay lập tức.",
   },
   {
     n: "3",
-    title: "Pay Deposit",
-    desc: "Pay the deposit via PayOS. Your spot is reserved the moment payment is confirmed.",
+    title: lang === "en" ? "Pay Deposit" : "Thanh toán đặt cọc",
+    desc: lang === "en"
+      ? "Pay the deposit via PayOS. Your spot is reserved the moment payment is confirmed."
+      : "Thanh toán tiền cọc an toàn qua cổng PayOS. Chỗ đỗ được giữ ngay sau khi xác nhận.",
   },
   {
     n: "4",
-    title: "Drive In",
-    desc: "Cameras read your plate and the barrier opens automatically. Park in your assigned zone.",
+    title: lang === "en" ? "Drive In" : "Lái xe vào bãi",
+    desc: lang === "en"
+      ? "Cameras read your plate and the barrier opens automatically. Park in your assigned zone."
+      : "Camera tự động quét biển số và mở cổng barrier. Đỗ xe đúng phân khu đã chỉ định.",
   },
 ];
 
-const TRUST_ITEMS = [
-  "Automatic check-in via license plate recognition camera",
-  "Secure payment through PayOS",
-  "24/7 continuous support",
-];
+const getTrustItems = (lang) =>
+  lang === "en"
+    ? [
+        "Automatic check-in via license plate recognition camera",
+        "Secure payment through PayOS",
+        "24/7 continuous support",
+      ]
+    : [
+        "Nhận diện biển số tự động qua Camera AI chuyên dụng",
+        "Thanh toán an toàn, bảo mật tuyệt đối qua cổng PayOS",
+        "Hỗ trợ vận hành & kỹ thuật 24/7 liên tục",
+      ];
 
 // ─── CapacityPill ─────────────────────────────────────────────────────────────
-function CapacityPill({ icon: Icon, label, available, total, accentColor }) {
+function CapacityPill({ icon: Icon, label, available, total, accentColor, language = "en" }) {
   const pct = total > 0 ? Math.round(((total - available) / total) * 100) : 0;
   const isFull = available === 0;
 
@@ -126,7 +155,7 @@ function CapacityPill({ icon: Icon, label, available, total, accentColor }) {
               fontWeight: 700,
             }}
           >
-            Full
+            {language === "en" ? "Full" : "Đầy"}
           </span>
         )}
       </div>
@@ -165,7 +194,7 @@ function CapacityPill({ icon: Icon, label, available, total, accentColor }) {
             opacity: 0.7,
           }}
         >
-          available slots
+          {language === "en" ? "available slots" : "ô đỗ khả dụng"}
         </div>
       </div>
 
@@ -189,7 +218,7 @@ function CapacityPill({ icon: Icon, label, available, total, accentColor }) {
         />
       </div>
       <div style={{ fontSize: 11, color: isFull ? "#ef4444" : "#93c5fd", marginTop: 5, textAlign: "right" }}>
-        {pct}% occupied
+        {pct}% {language === "en" ? "occupied" : "lấp đầy"}
       </div>
     </div>
   );
@@ -199,6 +228,7 @@ function CapacityPill({ icon: Icon, label, available, total, accentColor }) {
 export default function LandingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { language, toggleLanguage } = useLanguage();
   const isLoggedIn = !!user;
   const [capacity, setCapacity] = useState(null);
   const [capacityLoading, setCapacityLoading] = useState(true);
@@ -206,6 +236,10 @@ export default function LandingPage() {
   const [activeSection, setActiveSection] = useState("parking");
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabRefs = useRef({});
+
+  const FEATURES = getFeatures(language);
+  const STEPS = getSteps(language);
+  const TRUST_ITEMS = getTrustItems(language);
 
   const scrollToSection = (id) => {
     const el = document.getElementById(id);
@@ -228,7 +262,7 @@ export default function LandingPage() {
 
     const observerOptions = {
       root: null,
-      rootMargin: "-40% 0px -50% 0px", // Trigger when the section occupies the central area
+      rootMargin: "-40% 0px -50% 0px",
       threshold: 0.05,
     };
 
@@ -279,8 +313,6 @@ export default function LandingPage() {
     fetchCapacity();
   }, []);
 
-  // Parse vehicle_type_availability array from API
-  // vehicle_type_id: 1 = Motorbike, 2 = Car
   const vehicleTypes = capacity?.vehicle_type_availability ?? [];
   const motoData = vehicleTypes.find((v) => v.vehicle_type_id === 1);
   const carData = vehicleTypes.find((v) => v.vehicle_type_id === 2);
@@ -290,12 +322,14 @@ export default function LandingPage() {
   const carAvail = carData?.available_slots ?? null;
   const carTotal = carData?.total_slots ?? null;
 
-  // Total slots from building root
   const totalSlots = capacity?.total_slots ?? null;
 
-  // Status: "ACTIVE" → Open, anything else → Closed
   const isOpen = capacity?.status === "ACTIVE";
-  const statusLabel = capacity == null ? "Live" : isOpen ? "Open" : "Closed";
+  const statusLabel = capacity == null
+    ? (language === "en" ? "Live" : "Trực tiếp")
+    : isOpen
+      ? (language === "en" ? "Open" : "Mở cửa")
+      : (language === "en" ? "Closed" : "Đóng cửa");
   const statusColor = capacity == null
     ? { text: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" }
     : isOpen
@@ -304,9 +338,14 @@ export default function LandingPage() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const navItems = [
+    { label: language === "en" ? "Parking" : "Bãi xe", id: "parking" },
+    { label: language === "en" ? "Features" : "Tính năng", id: "features" },
+    { label: language === "en" ? "How It Works" : "Quy trình", id: "how-it-works" },
+  ];
+
   return (
     <div style={{ fontFamily: "inherit", background: "#fff", minHeight: "100vh" }}>
-
       {/* ── Navbar ── */}
       <nav
         style={{
@@ -328,13 +367,9 @@ export default function LandingPage() {
 
         {/* Desktop nav links */}
         <div className="lp-nav-links" style={{ gap: 32, position: "relative", height: "100%", alignItems: "center" }}>
-          {[
-            { label: "Parking", id: "parking" },
-            { label: "Features", id: "features" },
-            { label: "How It Works", id: "how-it-works" }
-          ].map(({ label, id }) => (
+          {navItems.map(({ label, id }) => (
             <a
-              key={label}
+              key={id}
               ref={(el) => (tabRefs.current[id] = el)}
               href={`#${id}`}
               className={`nav-link ${activeSection === id ? "active" : ""}`}
@@ -352,7 +387,6 @@ export default function LandingPage() {
               {label}
             </a>
           ))}
-          {/* Sliding indicator */}
           <div
             style={{
               position: "absolute",
@@ -366,19 +400,39 @@ export default function LandingPage() {
           />
         </div>
 
-        {/* Desktop action buttons */}
+        {/* Desktop action buttons & Language Toggle */}
         <div className="lp-nav-actions">
+          <button
+            onClick={toggleLanguage}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "7px 12px",
+              background: "#f8fafc",
+              border: "1px solid #cbd5e1",
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 700,
+              color: "#334155",
+              cursor: "pointer",
+            }}
+            title={language === "en" ? "Chuyển sang Tiếng Việt" : "Switch to English"}
+          >
+            <Globe size={14} className="text-blue-600" />
+            <span>{language === "en" ? "EN" : "VI"}</span>
+          </button>
           <button
             onClick={() => navigate(isLoggedIn ? "/user" : "/login")}
             className="btn-nav-login"
           >
-            {isLoggedIn ? "Dashboard" : "Log In"}
+            {isLoggedIn ? (language === "en" ? "Dashboard" : "Tổng quan") : (language === "en" ? "Log In" : "Đăng nhập")}
           </button>
           <button
             onClick={() => navigate(isLoggedIn ? "/user/book" : "/login")}
             className="btn-nav-book"
           >
-            Book a Spot
+            {language === "en" ? "Book a Spot" : "Đặt chỗ gửi xe"}
           </button>
         </div>
 
@@ -402,13 +456,9 @@ export default function LandingPage() {
 
       {/* Mobile menu drawer */}
       <div className={`lp-mobile-menu ${mobileMenuOpen ? "open" : ""}`}>
-        {[
-          { label: "Parking", id: "parking" },
-          { label: "Features", id: "features" },
-          { label: "How It Works", id: "how-it-works" }
-        ].map(({ label, id }) => (
+        {navItems.map(({ label, id }) => (
           <a
-            key={label}
+            key={id}
             href={`#${id}`}
             className={`lp-mobile-nav-link ${activeSection === id ? "active" : ""}`}
             onClick={(e) => {
@@ -422,23 +472,42 @@ export default function LandingPage() {
         ))}
         <div className="lp-mobile-actions">
           <button
+            onClick={toggleLanguage}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              padding: "8px 16px",
+              background: "#f1f5f9",
+              border: "1px solid #cbd5e1",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#1e293b",
+              width: "100%",
+            }}
+          >
+            <Globe size={14} />
+            <span>{language === "en" ? "Ngôn ngữ: English (EN)" : "Ngôn ngữ: Tiếng Việt (VI)"}</span>
+          </button>
+          <button
             onClick={() => { navigate(isLoggedIn ? "/user" : "/login"); setMobileMenuOpen(false); }}
             className="btn-nav-login"
           >
-            {isLoggedIn ? "Dashboard" : "Log In"}
+            {isLoggedIn ? (language === "en" ? "Dashboard" : "Tổng quan") : (language === "en" ? "Log In" : "Đăng nhập")}
           </button>
           <button
             onClick={() => { navigate(isLoggedIn ? "/user/book" : "/login"); setMobileMenuOpen(false); }}
             className="btn-nav-book"
           >
-            Book a Spot
+            {language === "en" ? "Book a Spot" : "Đặt chỗ gửi xe"}
           </button>
         </div>
       </div>
 
       {/* ── Hero ── */}
       <section id="parking" style={{ position: "relative", overflow: "hidden", minHeight: 580, display: "flex", alignItems: "center" }}>
-        {/* Bg image */}
         <div
           style={{
             position: "absolute", inset: 0,
@@ -447,7 +516,6 @@ export default function LandingPage() {
             filter: "brightness(0.35)",
           }}
         />
-        {/* Tint */}
         <div
           style={{
             position: "absolute", inset: 0,
@@ -455,9 +523,7 @@ export default function LandingPage() {
           }}
         />
 
-        {/* Content */}
         <div className="hero-content">
-          {/* Left */}
           <div className="hero-left">
             <div
               style={{
@@ -473,18 +539,31 @@ export default function LandingPage() {
                   background: isOpen ? "#4ade80" : "#f87171",
                 }}
               />
-              {isOpen ? "Live — updating in real time" : "Currently closed"}
+              {isOpen
+                ? (language === "en" ? "Live — updating in real time" : "Trực tiếp — Cập nhật thời gian thực")
+                : (language === "en" ? "Currently closed" : "Hiện đang đóng cửa")}
             </div>
 
             <h1 className="hero-h1">
-              Smart parking,{" "}
-              <span style={{ color: "#60a5fa" }}>no more</span>
-              <br />running late
+              {language === "en" ? (
+                <>
+                  Smart parking,{" "}
+                  <span style={{ color: "#60a5fa" }}>no more</span>
+                  <br />running late
+                </>
+              ) : (
+                <>
+                  Đỗ xe thông minh,{" "}
+                  <span style={{ color: "#60a5fa" }}>không còn lo</span>
+                  <br />trễ giờ hẹn
+                </>
+              )}
             </h1>
 
             <p className="hero-p">
-              Check live capacity, book up to 1 hour ahead, and check in automatically
-              with license plate recognition — no access card required.
+              {language === "en"
+                ? "Check live capacity, book up to 1 hour ahead, and check in automatically with license plate recognition — no access card required."
+                : "Xem sức chứa thực tế, đặt chỗ trước dễ dàng và tự động vào bãi qua camera AI nhận diện biển số — không cần thẻ từ hay thao tác thủ công."}
             </p>
 
             <div style={{ display: "flex", gap: 12, marginBottom: 36, flexWrap: "wrap" }}>
@@ -492,20 +571,20 @@ export default function LandingPage() {
                 onClick={() => navigate(isLoggedIn ? "/user/book" : "/login")}
                 className="btn-hero-book"
               >
-                <CalendarCheck size={17} /> Book a Spot
+                <CalendarCheck size={17} /> {language === "en" ? "Book a Spot" : "Đặt chỗ gửi xe"}
               </button>
               <button
                 onClick={() => scrollToSection("how-it-works")}
                 className="btn-hero-how"
               >
-                See How It Works
+                {language === "en" ? "See How It Works" : "Xem quy trình"}
               </button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-              {TRUST_ITEMS.map((t) => (
-                <div key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "rgba(255,255,255,0.68)" }}>
-                  <CheckCircle2 size={14} color="#4ade80" /> {t}
+              {TRUST_ITEMS.map((itemText) => (
+                <div key={itemText} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "rgba(255,255,255,0.68)" }}>
+                  <CheckCircle2 size={14} color="#4ade80" /> {itemText}
                 </div>
               ))}
             </div>
@@ -520,7 +599,6 @@ export default function LandingPage() {
                 boxShadow: "0 8px 48px rgba(0,0,0,0.2)",
               }}
             >
-              {/* Header */}
               <div
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -535,9 +613,8 @@ export default function LandingPage() {
                       boxShadow: isOpen ? "0 0 0 3px #dcfce7" : "0 0 0 3px #fee2e2",
                     }}
                   />
-                  Parking Capacity
+                  {language === "en" ? "Parking Capacity" : "Sức chứa bãi xe"}
                 </div>
-                {/* Status badge from API */}
                 <span
                   style={{
                     fontSize: 11,
@@ -553,7 +630,6 @@ export default function LandingPage() {
                 </span>
               </div>
 
-              {/* Pills */}
               {capacityLoading ? (
                 <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
                   {[1, 2].map((i) => (
@@ -562,24 +638,36 @@ export default function LandingPage() {
                 </div>
               ) : (
                 <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-                  <CapacityPill icon={Bike} label="Motorbikes" available={motoAvail} total={motoTotal} accentColor="#0ea5e9" />
-                  <CapacityPill icon={Car} label="Cars" available={carAvail} total={carTotal} accentColor="#1d4ed8" />
+                  <CapacityPill
+                    icon={Bike}
+                    label={language === "en" ? "Motorbikes" : "Xe máy"}
+                    available={motoAvail}
+                    total={motoTotal}
+                    accentColor="#0ea5e9"
+                    language={language}
+                  />
+                  <CapacityPill
+                    icon={Car}
+                    label={language === "en" ? "Cars" : "Ô tô"}
+                    available={carAvail}
+                    total={carTotal}
+                    accentColor="#1d4ed8"
+                    language={language}
+                  />
                 </div>
               )}
 
-              {/* Stats row */}
               <div
                 style={{
-                  display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+                  display: "grid", gridTemplateColumns: "repeat(2, 1fr)",
                   background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden",
                 }}
               >
                 {[
-                  [totalSlots != null ? String(totalSlots) : "—", "Parking Spots"],
-                  ["98%", "On-time Check-in"],
-                  ["24/7", "Open"],
+                  [totalSlots != null ? String(totalSlots) : "—", language === "en" ? "Parking Spots" : "Tổng số ô đỗ"],
+                  ["24/7", language === "en" ? "Open" : "Trạng thái mở"],
                 ].map(([val, lbl], i) => (
-                  <div key={lbl} style={{ padding: "14px 0", textAlign: "center", borderRight: i < 2 ? "1px solid #e2e8f0" : "none" }}>
+                  <div key={lbl} style={{ padding: "14px 0", textAlign: "center", borderRight: i < 1 ? "1px solid #e2e8f0" : "none" }}>
                     <div style={{ fontSize: 20, fontWeight: 700, color: "#1d4ed8" }}>{val}</div>
                     <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{lbl}</div>
                   </div>
@@ -592,9 +680,11 @@ export default function LandingPage() {
 
       {/* ── Features ── */}
       <section id="features" className="features-section">
-        <p style={{ fontSize: 12, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 10 }}>Features</p>
+        <p style={{ fontSize: 12, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 10 }}>
+          {language === "en" ? "Features" : "Tính năng nổi bật"}
+        </p>
         <h2 className="section-heading">
-          Everything you need to park with ease
+          {language === "en" ? "Everything you need to park with ease" : "Mọi tiện ích bạn cần cho trải nghiệm đỗ xe hoàn hảo"}
         </h2>
         <div className="features-grid">
           {FEATURES.map(({ icon: Icon, title, desc }) => (
@@ -612,9 +702,11 @@ export default function LandingPage() {
       {/* ── Steps ── */}
       <section id="how-it-works" className="how-section">
         <div className="how-inner">
-          <p style={{ fontSize: 12, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 10 }}>How It Works</p>
+          <p style={{ fontSize: 12, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 10 }}>
+            {language === "en" ? "How It Works" : "Quy trình thực hiện"}
+          </p>
           <h2 className="section-heading">
-            Book a spot in 4 simple steps
+            {language === "en" ? "Book a spot in 4 simple steps" : "Đặt chỗ gửi xe chỉ với 4 bước đơn giản"}
           </h2>
           <div className="steps-grid">
             {STEPS.map(({ n, title, desc }, i) => (
@@ -639,24 +731,25 @@ export default function LandingPage() {
       <section className="cta-section">
         <div className="cta-inner">
           <h2 className="cta-heading">
-            Ready to book today?
+            {language === "en" ? "Ready to book today?" : "Bạn đã sẵn sàng đặt chỗ hôm nay?"}
           </h2>
           <p className="cta-sub">
-            Dozens of spots are open right now — reserve ahead so you don't miss out.<br />
-            Takes 2 minutes, no app required.
+            {language === "en"
+              ? "Dozens of spots are open right now — reserve ahead so you don't miss out. Takes 2 minutes, no app required."
+              : "Hàng trăm vị trí đỗ xe đang sẵn sàng — Đặt trước ngay để đảm bảo chỗ gửi xe cho bạn chỉ trong 2 phút!"}
           </p>
           <div className="cta-actions">
             <button
               onClick={() => navigate(isLoggedIn ? "/user" : "/login")}
               className="btn-cta-login"
             >
-              {isLoggedIn ? "Dashboard" : "Log In"}
+              {isLoggedIn ? (language === "en" ? "Dashboard" : "Tổng quan") : (language === "en" ? "Log In" : "Đăng nhập")}
             </button>
             <button
               onClick={() => navigate(isLoggedIn ? "/user/book" : "/login")}
               className="btn-cta-book"
             >
-              Book a Spot →
+              {language === "en" ? "Book a Spot →" : "Đặt chỗ gửi xe →"}
             </button>
           </div>
         </div>
@@ -674,12 +767,14 @@ export default function LandingPage() {
               </div>
             </div>
             <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.75, maxWidth: 260, marginBottom: 24 }}>
-              Smart parking management and booking system. Automatic check-in via license plate recognition camera.
+              {language === "en"
+                ? "Smart parking management and booking system. Automatic check-in via license plate recognition camera."
+                : "Hệ thống quản lý và đặt chỗ đỗ xe thông minh. Nhận diện biển số xe tự động qua camera AI."}
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[
-                { label: "24/7 Support", icon: Clock },
-                { label: "SSL Secured", icon: Lock },
+                { label: language === "en" ? "24/7 Support" : "Hỗ trợ 24/7", icon: Clock },
+                { label: language === "en" ? "SSL Secured" : "Bảo mật SSL", icon: Lock },
               ].map(({ label, icon: Icon }) => (
                 <div key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#475569", background: "#1e293b", padding: "5px 10px", borderRadius: 6 }}>
                   <Icon size={12} color="#475569" style={{ flexShrink: 0 }} /> {label}
@@ -689,28 +784,40 @@ export default function LandingPage() {
           </div>
 
           <div>
-            <h4 style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 18 }}>Services</h4>
+            <h4 style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 18 }}>
+              {language === "en" ? "Services" : "Dịch vụ"}
+            </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {["Advance Booking", "Car Parking", "Motorbike Parking", "PayOS Payment", "Remote Vehicle Lock"].map(l => (
+              {(language === "en"
+                ? ["Advance Booking", "Car Parking", "Motorbike Parking", "PayOS Payment", "Remote Vehicle Lock"]
+                : ["Đặt chỗ trước", "Gửi xe ô tô", "Gửi xe máy", "Thanh toán PayOS", "Khóa xe từ xa"]
+              ).map((l) => (
                 <a key={l} href="#" style={{ fontSize: 13, color: "#64748b", textDecoration: "none" }}>{l}</a>
               ))}
             </div>
           </div>
 
           <div>
-            <h4 style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 18 }}>Support</h4>
+            <h4 style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 18 }}>
+              {language === "en" ? "Support" : "Hỗ trợ"}
+            </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {["User Guide", "FAQ", "Parking Rules", "Cancellation Policy", "Contact Support"].map(l => (
+              {(language === "en"
+                ? ["User Guide", "FAQ", "Parking Rules", "Cancellation Policy", "Contact Support"]
+                : ["Hướng dẫn sử dụng", "Câu hỏi thường gặp", "Quy định bãi xe", "Chính sách hủy chỗ", "Liên hệ hỗ trợ"]
+              ).map((l) => (
                 <a key={l} href="#" style={{ fontSize: 13, color: "#64748b", textDecoration: "none" }}>{l}</a>
               ))}
             </div>
           </div>
 
           <div>
-            <h4 style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 18 }}>Contact</h4>
+            <h4 style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 18 }}>
+              {language === "en" ? "Contact" : "Liên hệ"}
+            </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
-                { icon: MapPin, text: "Ho Chi Minh City, Vietnam" },
+                { icon: MapPin, text: language === "en" ? "Ho Chi Minh City, Vietnam" : "TP. Hồ Chí Minh, Việt Nam" },
                 { icon: Phone, text: "1900 xxxx" },
                 { icon: Mail, text: "support@eparking.vn" },
               ].map(({ icon: Icon, text }) => (
@@ -726,9 +833,16 @@ export default function LandingPage() {
         <div style={{ borderTop: "1px solid #1e293b" }} />
 
         <div className="footer-bottom">
-          <p style={{ fontSize: 12, color: "#334155" }}>© 2026 eParking Management System. All rights reserved.</p>
+          <p style={{ fontSize: 12, color: "#334155" }}>
+            {language === "en"
+              ? "© 2026 eParking Management System. All rights reserved."
+              : "© 2026 eParking Management System. Tất cả các quyền được bảo lưu."}
+          </p>
           <div className="footer-bottom-links">
-            {["Privacy Policy", "Terms of Use", "Cancellation Policy"].map(l => (
+            {(language === "en"
+              ? ["Privacy Policy", "Terms of Use", "Cancellation Policy"]
+              : ["Chính sách bảo mật", "Điều khoản sử dụng", "Chính sách hủy chỗ"]
+            ).map((l) => (
               <a key={l} href="#" style={{ fontSize: 12, color: "#334155", textDecoration: "none" }}>{l}</a>
             ))}
           </div>

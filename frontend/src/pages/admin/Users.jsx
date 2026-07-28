@@ -62,6 +62,7 @@ export default function AdminUsers() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [userToToggleStatus, setUserToToggleStatus] = useState(null);
   const [togglingStatus, setTogglingStatus] = useState(false);
+  const [banReason, setBanReason] = useState("");
 
   const fetchUsers = async () => {
     try {
@@ -146,7 +147,11 @@ export default function AdminUsers() {
 
     try {
       setTogglingStatus(true);
-      const response = await api.put(`/admin/users/${uId}/status`, { status: newStatus });
+      const payload = { status: newStatus };
+      if (newStatus === "BANNED") {
+        payload.reason = banReason.trim() || undefined;
+      }
+      const response = await api.put(`/admin/users/${uId}/status`, payload);
       if (response.data && response.data.success) {
         setUsersList((prev) =>
           prev.map((u) => ((u.user_id || u.userId) === uId ? { ...u, status: newStatus } : u))
@@ -158,6 +163,7 @@ export default function AdminUsers() {
         }
         setIsStatusModalOpen(false);
         setUserToToggleStatus(null);
+        setBanReason("");
       }
     } catch (err) {
       console.error("[User Status Toggle Failed]:", err);
@@ -377,7 +383,7 @@ export default function AdminUsers() {
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case "SystemAdmin":
-        return "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/30";
+        return "bg-yellow-50 text-yellow-700 border border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-900/30";
       case "ParkingManager":
         return "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30";
       case "ParkingStaff":
@@ -439,12 +445,12 @@ export default function AdminUsers() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {language === "en" ? "User Accounts & Roles" : "Tài khoản & Vai trò"}
+            {language === "en" ? "User Management & Roles" : "Quản lý người dùng & Phân quyền"}
           </h2>
           <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">
             {language === "en"
-              ? "Manage user accounts, assign roles, and control access permissions."
-              : "Xem các tài khoản đã đăng ký, phân quyền quản trị , hoặc khóa quyền truy cập."}
+              ? "Manage user accounts, assign roles, and control system access permissions."
+              : "Quản lý tài khoản người dùng, phân quyền truy cập và kiểm soát trạng thái hoạt động."}
           </p>
         </div>
 
@@ -1076,6 +1082,7 @@ export default function AdminUsers() {
               if (!togglingStatus) {
                 setIsStatusModalOpen(false);
                 setUserToToggleStatus(null);
+                setBanReason("");
               }
             }}
           />
@@ -1085,6 +1092,7 @@ export default function AdminUsers() {
               onClick={() => {
                 setIsStatusModalOpen(false);
                 setUserToToggleStatus(null);
+                setBanReason("");
               }}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-655 disabled:opacity-50 transition-colors"
             >
@@ -1138,13 +1146,37 @@ export default function AdminUsers() {
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-6">
+              {/* Reason input: chỉ hiển thị khi đang khóa tài khoản (BANNED) */}
+              {userToToggleStatus.status === "ACTIVE" && (
+                <div className="mt-3">
+                  <label className="block text-slate-400 dark:text-slate-500 mb-1.5 uppercase text-[10px] font-bold tracking-wider">
+                    {language === "en" ? "Ban Reason" : "Lý do khóa"}
+
+                  </label>
+                  <textarea
+                    value={banReason}
+                    onChange={(e) => setBanReason(e.target.value)}
+                    disabled={togglingStatus}
+                    rows={3}
+                    placeholder={
+                      language === "en"
+                        ? "e.g. Violated terms and policies... "
+                        : "VD: Vi phạm điều khoản và chính sách... "
+                    }
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white placeholder-slate-350 dark:placeholder-slate-600 text-xs focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 dark:focus:border-red-600 transition-colors resize-none disabled:opacity-50"
+                  />
+
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-4">
                 <button
                   type="button"
                   disabled={togglingStatus}
                   onClick={() => {
                     setIsStatusModalOpen(false);
                     setUserToToggleStatus(null);
+                    setBanReason("");
                   }}
                   className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50"
                 >

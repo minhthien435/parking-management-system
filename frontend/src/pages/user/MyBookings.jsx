@@ -31,13 +31,23 @@ import {
   Phone,
   MapPin,
   CalendarCheck,
-  Download
+  Download,
+  XCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useAuth } from "../../hooks/useAuth";
 import { jsPDF } from "jspdf";
+
+const removeVietnameseTones = (str) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
 
 export default function MyBookings() {
   const navigate = useNavigate();
@@ -318,7 +328,7 @@ export default function MyBookings() {
       const hrs = Math.floor(totalMins / 60);
       const mins = totalMins % 60;
       if (hrs > 0) {
-        return language === "en" ? `${hrs}h ${mins}m` : `${hrs} giờ ${remMins = mins} phút`;
+        return language === "en" ? `${hrs}h ${mins}m` : `${hrs} giờ ${mins} phút`;
       }
       return language === "en" ? `${mins}m` : `${mins} phút`;
     } catch {
@@ -900,13 +910,7 @@ export default function MyBookings() {
                   </span>
                 </p>
 
-                <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/30 rounded-xl p-3 mb-6 text-left">
-                  <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 leading-normal">
-                    ✓ {language === "en"
-                      ? `You will receive a 100% refund of your deposit of ${selectedBooking?.depositPaid?.toLocaleString()} VND because you are cancelling early (over 1 hour in advance).`
-                      : `Bạn sẽ được hoàn lại 100% số tiền cọc ${selectedBooking?.depositPaid?.toLocaleString()}đ vì bạn hủy lịch sớm (trước giờ hẹn trên 1 tiếng).`}
-                  </p>
-                </div>
+
 
                 <div className="flex gap-3">
                   <button onClick={closeModal} className="flex-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors">
@@ -1000,16 +1004,6 @@ export default function MyBookings() {
                         : "Để đảm bảo an toàn tài sản, bạn có thể kích hoạt tính năng 'Khóa xe' trên ứng dụng sau khi đỗ. Rào chắn lối ra sẽ chặn hoàn toàn biển số xe này cho đến khi bạn chủ động 'Mở khóa' trên app."}
                     </p>
                   </div>
-
-                  {/* Quy định 7: Ràng buộc chống Spam */}
-                  <div className="flex gap-2.5">
-                    <span className="text-blue-500 font-extrabold">7.</span>
-                    <p>
-                      {language === "en"
-                        ? "If an account cancels bookings (unpaid) more than 3 times a day, the system will trigger a spam warning and lock the booking feature for the next 24 hours."
-                        : "Nếu tài khoản chủ động hủy lịch quá 3 lần/ngày (đối với đơn chưa thanh toán), hệ thống sẽ kích hoạt cảnh báo spam và khóa tính năng đặt chỗ trước trong 24 giờ tiếp theo."}
-                    </p>
-                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end shrink-0">
@@ -1023,20 +1017,21 @@ export default function MyBookings() {
               </div>
             )}
             {activeModal === "receipt" && selectedBooking && (() => {
-              const isUnpaidCancelled = selectedBooking.status === "cancelled" && selectedBooking.notes === "unpaid";
+              const isCancelled = selectedBooking.status === "cancelled";
+              const isUnpaidCancelled = isCancelled && selectedBooking.notes === "unpaid";
               return (
                 <div className="w-full">
                   {/* Header banner */}
-                  <div className={`px-6 py-7 text-center text-white relative ${isUnpaidCancelled
-                    ? "bg-gradient-to-r from-slate-900 via-slate-800 to-black"
+                  <div className={`px-6 py-7 text-center text-white relative ${isCancelled
+                    ? "bg-gradient-to-r from-slate-900 via-slate-850 to-black shadow-lg shadow-black/30"
                     : "bg-gradient-to-r from-emerald-500 to-emerald-700"
                     }`}>
                     <button onClick={closeModal} className="absolute top-3 right-3 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-full transition-all">
                       <X size={15} />
                     </button>
-                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                      {isUnpaidCancelled ? (
-                        <AlertTriangle size={26} className="text-red-550" />
+                    <div className="w-12 h-12 bg-white/15 rounded-full flex items-center justify-center mx-auto mb-3 border border-white/10">
+                      {isCancelled ? (
+                        <XCircle size={26} className="text-white" />
                       ) : (
                         <CheckCircle2 size={26} className="text-white" />
                       )}
@@ -1044,13 +1039,13 @@ export default function MyBookings() {
                     <h3 className="font-extrabold text-base leading-tight">
                       {isUnpaidCancelled
                         ? (language === "en" ? "Unpaid & Cancelled" : "Chưa thanh toán & Đã hủy")
-                        : selectedBooking.status === "completed"
-                          ? (language === "en" ? "Parking Completed" : "Hoàn Tất Đỗ Xe")
-                          : selectedBooking.status === "active"
-                            ? (language === "en" ? "Currently Parked" : "Đang Đỗ Xe")
-                            : selectedBooking.status === "confirmed"
-                              ? (language === "en" ? "Booking Confirmed" : "Đặt Chỗ Thành Công")
-                              : (language === "en" ? "Booking Cancelled" : "Đã Hủy Đặt Chỗ")}
+                        : isCancelled
+                          ? (language === "en" ? "Booking Cancelled" : "Đã Hủy Đặt Chỗ")
+                          : selectedBooking.status === "completed"
+                            ? (language === "en" ? "Parking Completed" : "Hoàn Tất Đỗ Xe")
+                            : selectedBooking.status === "active"
+                              ? (language === "en" ? "Currently Parked" : "Đang Đỗ Xe")
+                              : (language === "en" ? "Booking Confirmed" : "Đặt Chỗ Thành Công")}
                     </h3>
                   </div>
 
@@ -1063,16 +1058,16 @@ export default function MyBookings() {
                           ? (language === "en" ? "PAYMENT STATUS" : "TRẠNG THÁI THANH TOÁN")
                           : (language === "en" ? "TOTAL AMOUNT PAID" : "TỔNG SỐ TIỀN ĐÃ THANH TOÁN")}
                       </p>
-                      <h2 className={`text-3xl font-black font-sans ${isUnpaidCancelled ? "text-red-650 dark:text-red-400" : "text-slate-900 dark:text-white"}`}>
+                      <h2 className={`text-3xl font-black font-sans ${isCancelled ? "text-slate-900 dark:text-white" : "text-slate-900 dark:text-white"}`}>
                         {isUnpaidCancelled
                           ? (language === "en" ? "UNPAID" : "CHƯA THANH TOÁN")
                           : `${selectedBooking.depositPaid.toLocaleString()} VNĐ`}
                       </h2>
-                      {isUnpaidCancelled && (
-                        <p className="text-xs font-semibold text-slate-500 mt-1">
-                          {language === "en"
-                            ? "This booking was cancelled before payment was completed."
-                            : "Đặt chỗ này đã bị hủy trước khi hoàn tất thanh toán."}
+                      {isCancelled && (
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
+                          {isUnpaidCancelled
+                            ? (language === "en" ? "This booking was cancelled before payment was completed." : "Đặt chỗ này đã bị hủy trước khi hoàn tất thanh toán.")
+                            : (language === "en" ? "This booking has been cancelled." : "Đơn đặt chỗ này đã được hủy thành công.")}
                         </p>
                       )}
                     </div>
@@ -1095,7 +1090,7 @@ export default function MyBookings() {
                         </div>
                         <div className="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-1.5 mt-1.5">
                           <span className="text-slate-400">{language === "en" ? "Duration:" : "Thời gian đỗ:"}</span>
-                          <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
+                          <span className={`font-extrabold ${isCancelled ? "text-slate-700 dark:text-slate-300" : "text-emerald-600 dark:text-emerald-400"}`}>
                             {calculateDuration(selectedBooking.startTime, selectedBooking.endTime)}
                           </span>
                         </div>
@@ -1138,8 +1133,6 @@ export default function MyBookings() {
                       const earlyFee = selectedBooking.earlyFee || 0;
                       const penaltyFee = selectedBooking.penaltyFee || 0;
                       const totalCost = reservationFee + earlyFee + penaltyFee;
-                      const totalPaid = isUnpaidCancelled ? 0 : (isCompleted ? totalCost : selectedBooking.depositPaid);
-                      const amountDue = isCompleted ? 0 : (earlyFee + penaltyFee);
                       const feeMethod = isUnpaidCancelled
                         ? (language === "en" ? "Unpaid" : "Chưa thanh toán")
                         : (selectedBooking.paymentMethod || "Paid");
@@ -1154,8 +1147,8 @@ export default function MyBookings() {
                             <div className="flex justify-between">
                               <span className="text-slate-500">
                                 {language === "en" ? "Reservation fee" : "Phí đặt chỗ cơ bản"}
-                                <span className={`text-[9px] font-bold ml-1.5 px-1.5 py-0.5 rounded ${isUnpaidCancelled
-                                  ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20"
+                                <span className={`text-[9px] font-bold ml-1.5 px-1.5 py-0.5 rounded ${isCancelled
+                                  ? "text-slate-300 bg-slate-900 dark:bg-slate-800"
                                   : "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20"
                                   }`}>
                                   {feeMethod}
@@ -1226,10 +1219,9 @@ export default function MyBookings() {
                       onClick={() => {
                         try {
                           const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a5" });
-                          const isUnpaidCancelled = selectedBooking.status === "cancelled" && selectedBooking.notes === "unpaid";
 
                           // Header bar
-                          if (isUnpaidCancelled) {
+                          if (isCancelled) {
                             doc.setFillColor(30, 30, 30);
                           } else {
                             doc.setFillColor(16, 124, 65);
@@ -1237,8 +1229,12 @@ export default function MyBookings() {
                           doc.rect(0, 0, 148, 35, "F");
                           doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(13);
                           const headerTitle = isUnpaidCancelled
-                            ? (language === "en" ? "UNPAID & CANCELLED" : "CHƯA THANH TOÁN & ĐÃ HỦY")
-                            : selectedBooking.status === "completed" ? "PARKING RECEIPT" : "BOOKING RECEIPT";
+                            ? "UNPAID & CANCELLED"
+                            : isCancelled
+                              ? "BOOKING CANCELLED"
+                              : selectedBooking.status === "completed"
+                                ? "PARKING RECEIPT"
+                                : "BOOKING RECEIPT";
                           doc.text(headerTitle, 74, 14, { align: "center" });
                           const currentPayId = selectedBooking.paymentId || selectedBooking.payment_id || (isUnpaidCancelled ? "UNPAID" : `PAY-${selectedBooking.id}`);
                           doc.setFont("helvetica", "normal"); doc.setFontSize(8);
@@ -1255,11 +1251,12 @@ export default function MyBookings() {
                           const totalPaid = isUnpaidCancelled ? 0 : (isCompleted ? totalCost : selectedBooking.depositPaid);
 
                           doc.setTextColor(60, 60, 60); doc.setFontSize(8);
-                          doc.text(isUnpaidCancelled ? "PAYMENT STATUS" : "TOTAL AMOUNT PAID", 74, 45, { align: "center" });
+                          doc.text(isCancelled ? "BOOKING STATUS" : "TOTAL AMOUNT PAID", 74, 45, { align: "center" });
 
-                          if (isUnpaidCancelled) {
-                            doc.setTextColor(200, 50, 50); doc.setFont("helvetica", "bold"); doc.setFontSize(16);
-                            doc.text(language === "en" ? "UNPAID" : "CHƯA THANH TOÁN", 74, 56, { align: "center" });
+                          if (isCancelled) {
+                            doc.setTextColor(30, 30, 30); doc.setFont("helvetica", "bold"); doc.setFontSize(16);
+                            const cancelledLabel = isUnpaidCancelled ? "UNPAID & CANCELLED" : "CANCELLED";
+                            doc.text(cancelledLabel, 74, 56, { align: "center" });
                           } else {
                             doc.setTextColor(16, 124, 65); doc.setFont("helvetica", "bold"); doc.setFontSize(18);
                             doc.text(totalPaid.toLocaleString() + " VND", 74, 56, { align: "center" });
@@ -1268,9 +1265,23 @@ export default function MyBookings() {
                           // Divider line
                           doc.setDrawColor(220, 220, 220); doc.line(12, 65, 136, 65);
 
+                          // Helper for English duration in PDF
+                          const getPdfDuration = (start, end) => {
+                            if (!start || !end) return "—";
+                            try {
+                              const diffMs = new Date(end).getTime() - new Date(start).getTime();
+                              if (diffMs <= 0) return "—";
+                              const totalMins = Math.floor(diffMs / 60000);
+                              const hrs = Math.floor(totalMins / 60);
+                              const mins = totalMins % 60;
+                              if (hrs > 0) return `${hrs}h ${mins}m`;
+                              return `${mins}m`;
+                            } catch { return "—"; }
+                          };
+
                           // Schedule Details
-                          if (isUnpaidCancelled) {
-                            doc.setTextColor(50, 50, 50);
+                          if (isCancelled) {
+                            doc.setTextColor(30, 30, 30);
                           } else {
                             doc.setTextColor(16, 124, 65);
                           }
@@ -1279,14 +1290,14 @@ export default function MyBookings() {
                           doc.setTextColor(80, 80, 80); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
                           doc.text("Arrival Time:", 12, 78); doc.setFont("helvetica", "bold"); doc.text(formatFullDateTime(selectedBooking.startTime), 40, 78);
                           doc.setFont("helvetica", "normal"); doc.text("Departure Time:", 12, 84); doc.setFont("helvetica", "bold"); doc.text(formatFullDateTime(selectedBooking.endTime), 40, 84);
-                          doc.setFont("helvetica", "normal"); doc.text("Duration:", 12, 90); doc.setFont("helvetica", "bold"); doc.text(calculateDuration(selectedBooking.startTime, selectedBooking.endTime), 40, 90);
+                          doc.setFont("helvetica", "normal"); doc.text("Duration:", 12, 90); doc.setFont("helvetica", "bold"); doc.text(getPdfDuration(selectedBooking.startTime, selectedBooking.endTime), 40, 90);
 
                           // Divider line
                           doc.line(12, 96, 136, 96);
 
                           // Vehicle section
-                          if (isUnpaidCancelled) {
-                            doc.setTextColor(50, 50, 50);
+                          if (isCancelled) {
+                            doc.setTextColor(30, 30, 30);
                           } else {
                             doc.setTextColor(16, 124, 65);
                           }
@@ -1300,8 +1311,8 @@ export default function MyBookings() {
                           doc.line(12, 121, 136, 121);
 
                           // Fee section
-                          if (isUnpaidCancelled) {
-                            doc.setTextColor(50, 50, 50);
+                          if (isCancelled) {
+                            doc.setTextColor(30, 30, 30);
                           } else {
                             doc.setTextColor(16, 124, 65);
                           }
@@ -1309,9 +1320,7 @@ export default function MyBookings() {
                           doc.text("FEE DETAILS", 12, 128);
                           doc.setTextColor(80, 80, 80); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
 
-                          let feeMethod = isUnpaidCancelled
-                            ? (language === "en" ? "Unpaid" : "Chưa thanh toán")
-                            : (selectedBooking.paymentMethod || "Paid");
+                          let feeMethod = isUnpaidCancelled ? "Unpaid" : (selectedBooking.paymentMethod || "Paid");
                           doc.text(`Reservation fee (${feeMethod}):`, 12, 135);
                           doc.text(reservationFee.toLocaleString() + " VND", 136, 135, { align: "right" });
 
@@ -1347,11 +1356,17 @@ export default function MyBookings() {
 
                           // Footer
                           doc.setTextColor(150, 150, 150); doc.setFont("helvetica", "italic"); doc.setFontSize(7);
-                          doc.text(isUnpaidCancelled ? (language === "en" ? "This reservation was cancelled." : "Đặt chỗ này đã bị hủy.") : "Thank you for using eParking! We look forward to serving you again.", 74, 195, { align: "center" });
+                          const footerText = isCancelled
+                            ? "This reservation was cancelled."
+                            : "Thank you for using eParking! We look forward to serving you again.";
+                          doc.text(footerText, 74, 195, { align: "center" });
                           doc.save("receipt-" + selectedBooking.id + ".pdf");
                         } catch (e) { alert("Could not generate PDF."); }
                       }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition active:scale-[0.98]"
+                      className={`w-full text-white font-black py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition active:scale-[0.98] ${isCancelled
+                        ? "bg-slate-900 hover:bg-black shadow-slate-900/20"
+                        : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
+                        }`}
                     >
                       <Download size={15} />
                       {language === "en" ? "Download Receipt" : "Tải hóa đơn"}
@@ -1653,10 +1668,9 @@ export default function MyBookings() {
                         <button
                           disabled={!canCancel}
                           onClick={() => { closeModal(); setTimeout(() => openModal("cancel", selectedBooking), 100); }}
-                          className={`font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1 transition ${canCancel ? "text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950/20" : "text-slate-400 bg-slate-50 dark:bg-slate-900 cursor-not-allowed"
+                          className={`font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1 transition ${canCancel ? "text-white bg-red-500 hover:bg-red-600 dark:bg-red-950/20" : "text-slate-400 bg-slate-50 dark:bg-slate-900 cursor-not-allowed"
                             }`}
                         >
-                          <AlertTriangle size={13} />
                           {canCancel ? (language === "en" ? "Cancel Booking" : "Hủy đặt chỗ") : (language === "en" ? "Cannot Cancel" : "Không thể hủy")}
                         </button>
                       );

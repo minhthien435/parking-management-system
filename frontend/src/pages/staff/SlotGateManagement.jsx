@@ -60,7 +60,7 @@ const t = {
     warningLowCapacitySingle: "Cảnh báo: Bảo trì ô này sẽ khiến phân khu chỉ còn {count} ô trống khả dụng.",
     warningLowCapacityBulk: "Cảnh báo: Bảo trì các ô này sẽ khiến phân khu chỉ còn {count} ô trống khả dụng.",
     floorOverview: "Tổng quan các tầng",
-    backToOverview: "Quay lại tổng quan",
+    backToOverview: "Quay lại",
     totalCapacity: "Tổng sức chứa",
     occupiedRate: "Tỷ lệ sử dụng",
     viewDetails: "Xem chi tiết",

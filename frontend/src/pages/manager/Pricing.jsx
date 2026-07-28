@@ -250,9 +250,7 @@ export default function ManagerPricing() {
         <>
           {/* ACTIVE RATES CARDS GRID */}
           <div>
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">
-              {language === 'en' ? 'Current Active Rates' : 'Giá vé đang áp dụng hiện tại'}
-            </h3>
+
 
             {vehicleTypes.length === 0 ? (
               <div className="card text-center py-10">
@@ -357,17 +355,15 @@ export default function ManagerPricing() {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => openEditModal(activePolicy)}
-                                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition-all flex items-center gap-1"
+                                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500 rounded transition-colors"
                               >
-                                <Edit size={13} />
-                                {language === 'en' ? 'Edit' : 'Sửa'}
+                                <Edit size={14} />
                               </button>
                               <button
                                 onClick={() => handleDeletePolicy(activePolicy.policy_id)}
-                                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 font-bold rounded-lg transition-all flex items-center gap-1"
+                                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 rounded transition-colors"
                               >
-                                <Trash2 size={13} />
-                                {language === 'en' ? 'Delete' : 'Xóa'}
+                                <Trash2 size={14} />
                               </button>
                             </div>
                           </div>

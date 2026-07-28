@@ -16,10 +16,10 @@ export default function UserLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const navigationItems = [
     { path: "/user", label: language === "en" ? "Dashboard" : "Trang chủ", icon: <Home size={20} /> },
-    { path: "/user/book", label: language === "en" ? "Book Slot" : "Đặt vị trí đỗ", icon: <Calendar size={20} /> },
+    { path: "/user/book", label: language === "en" ? "Book Slot" : "Đặt chỗ gửi xe", icon: <Calendar size={20} /> },
     {
       path: "/user/bookings",
-      label: language === "en" ? "My Bookings" : "Lịch sử đặt chỗ",
+      label: language === "en" ? "My Bookings" : "Đặt chỗ của tôi",
       icon: <History size={20} />,
     },
     {

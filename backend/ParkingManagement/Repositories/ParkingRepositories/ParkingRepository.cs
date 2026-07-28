@@ -469,6 +469,7 @@ namespace ParkingManagement.Repositories
             return await _context.Bookings
                 .Include(b => b.Zone)
                 .Include(b => b.VehicleType)
+                .Include(b => b.VehicleUser)
                 .FirstOrDefaultAsync(b => b.LicensePlate.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() == cleanInputPlate
                     && b.Status == "CONFIRMED"
                     && b.ExpectedArrival.AddHours(-12) <= currentTime

@@ -22,7 +22,7 @@ import { useLanguage } from "../../hooks/useLanguage";
 
 const t = {
   vi: {
-    title: "Booking Record",
+    title: "Tra cứu & Đối soát đặt chỗ",
     subtitle: "Quản lý và đối chiếu thông tin đặt chỗ của khách hàng theo thời gian thực",
     placeholderSearch: "Tìm theo tên khách, số điện thoại, biển số xe...",
     btnRefresh: "Làm mới",
@@ -61,8 +61,8 @@ const t = {
     floorLabel: "Tầng",
     motorbike: "Xe máy",
     car: "Ô tô",
-    tabPending: "Chờ đỗ (Pending)",
-    tabActive: "Đang đỗ (Active)",
+    tabPending: "Chờ đỗ",
+    tabActive: "Đang đỗ",
     tabCompleted: "Đã hoàn thành"
   },
   en: {

@@ -16,12 +16,12 @@ export default function ManagerLayout() {
   const { language } = useLanguage();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const navigationItems = [
-    { path: '/manager', label: language === 'en' ? 'Dashboard' : 'Bảng điều khiển', icon: <BarChart3 size={20} /> },
-    { path: '/manager/slots', label: language === 'en' ? 'Parking Slots' : 'Vị trí đỗ', icon: <ClipboardList size={20} /> },
-    { path: '/manager/building', label: language === 'en' ? 'Building Info' : 'Thông tin Tòa nhà', icon: <Building2 size={20} /> },
-    { path: '/manager/pricing', label: language === 'en' ? 'Pricing' : 'Cấu hình giá', icon: <DollarSign size={20} /> },
+    { path: '/manager', label: language === 'en' ? 'Dashboard' : 'Tổng quan', icon: <BarChart3 size={20} /> },
+    { path: '/manager/slots', label: language === 'en' ? 'Parking Slots' : 'Quản lý ô đỗ xe', icon: <ClipboardList size={20} /> },
+    { path: '/manager/building', label: language === 'en' ? 'Building Info' : 'Thông tin tòa nhà', icon: <Building2 size={20} /> },
+    { path: '/manager/pricing', label: language === 'en' ? 'Pricing' : 'Cấu hình bảng giá', icon: <DollarSign size={20} /> },
     { path: '/manager/staff', label: language === 'en' ? 'Staff Management' : 'Quản lý nhân viên', icon: <Users size={20} /> },
-    { path: '/manager/issues', label: language === 'en' ? 'Issues' : 'Sự cố phản hồi', icon: <AlertCircle size={20} /> },
+    { path: '/manager/issues', label: language === 'en' ? 'Issues' : 'Phản hồi sự cố', icon: <AlertCircle size={20} /> },
   ]
 
   return (
