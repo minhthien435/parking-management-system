@@ -10,7 +10,8 @@ import {
   Camera,
   Clock,
   HelpCircle,
-  Play
+  Play,
+  ShieldAlert
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -27,6 +28,11 @@ export default function AdminSettings() {
   const [autoLPR, setAutoLPR] = useState(true); // License Plate Recognition
   const [autoBarrierOpen, setAutoBarrierOpen] = useState(true); // Open gate automatically on valid ocr
   const [ocrSensitivity, setOcrSensitivity] = useState("HIGH"); // HIGH | MEDIUM | LOW
+
+  // 2. Security Settings States
+  const [rateLimitRequests, setRateLimitRequests] = useState(100); // requests per window (regular users only; staff/manager/admin are exempt)
+  const [rateLimitWindowSeconds, setRateLimitWindowSeconds] = useState(60); // window length in seconds
+  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState(60); // login session (JWT) lifetime in minutes
 
   // Fetch settings from API on mount
   useEffect(() => {
@@ -46,6 +52,15 @@ export default function AdminSettings() {
                 break;
               case "ocrSensitivity":
                 setOcrSensitivity(val);
+                break;
+              case "rateLimitRequests":
+                setRateLimitRequests(Number(val) || 100);
+                break;
+              case "rateLimitWindowSeconds":
+                setRateLimitWindowSeconds(Number(val) || 60);
+                break;
+              case "sessionTimeoutMinutes":
+                setSessionTimeoutMinutes(Number(val) || 60);
                 break;
               default:
                 break;
@@ -67,6 +82,9 @@ export default function AdminSettings() {
         autoLPR: autoLPR.toString(),
         autoBarrierOpen: autoBarrierOpen.toString(),
         ocrSensitivity: ocrSensitivity.toString(),
+        rateLimitRequests: rateLimitRequests.toString(),
+        rateLimitWindowSeconds: rateLimitWindowSeconds.toString(),
+        sessionTimeoutMinutes: sessionTimeoutMinutes.toString(),
       };
 
       const promises = Object.entries(payload).map(([key, value]) =>
@@ -157,6 +175,11 @@ export default function AdminSettings() {
             id: "hardware",
             label: language === "en" ? "Gates & Camera" : "Cổng & Camera",
             icon: <Camera size={14} />
+          },
+          {
+            id: "security",
+            label: language === "en" ? "Security" : "Bảo Mật",
+            icon: <ShieldAlert size={14} />
           },
           {
             id: "database",
@@ -275,6 +298,81 @@ export default function AdminSettings() {
                     {testBarrierLoading ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
                     {language === "en" ? "Open Gate 1 (Test)" : "Mở Cổng 1 (Test)"}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: SECURITY */}
+          {activeTab === "security" && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-black text-slate-800 dark:text-white mb-2 uppercase tracking-wide flex items-center gap-2">
+                <ShieldAlert size={16} className="text-blue-500" />
+                {language === "en" ? "Rate Limiting & Session" : "Giới Hạn Truy Cập & Phiên Đăng Nhập"}
+              </h3>
+
+              <div className="space-y-3">
+                {/* Rate Limit */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-850/45 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <span className="block text-xs font-bold text-slate-800 dark:text-white">
+                    {language === "en" ? "API Rate Limit" : "Giới Hạn Số Lượng Request"}
+                  </span>
+                  <span className="block text-[10px] text-slate-400 font-medium leading-normal mt-0.5 mb-2">
+                    {language === "en"
+                      ? "Max requests allowed per IP within the time window below. Applies to regular users only — Admin, Manager, and Staff accounts are never rate limited."
+                      : "Số request tối đa cho phép trên mỗi IP trong khoảng thời gian bên dưới. Chỉ áp dụng cho người dùng thường — tài khoản Admin, Manager, Staff không bị giới hạn."}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="block text-[10px] text-slate-400 font-bold mb-1">
+                        {language === "en" ? "Max requests" : "Số request tối đa"}
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={rateLimitRequests}
+                        onChange={(e) => setRateLimitRequests(Math.max(1, Number(e.target.value)))}
+                        className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none"
+                      />
+                    </div>
+                    <span className="text-slate-400 text-xs pt-4">/</span>
+                    <div className="flex-1">
+                      <label className="block text-[10px] text-slate-400 font-bold mb-1">
+                        {language === "en" ? "Per (seconds)" : "Mỗi (giây)"}
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={rateLimitWindowSeconds}
+                        onChange={(e) => setRateLimitWindowSeconds(Math.max(1, Number(e.target.value)))}
+                        className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Session Timeout */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-850/45 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <label className="block text-xs font-bold text-slate-800 dark:text-white mb-0.5">
+                    {language === "en" ? "Login Session Timeout" : "Thời Gian Timeout Phiên Đăng Nhập"}
+                  </label>
+                  <span className="block text-[10px] text-slate-400 font-medium leading-normal mb-2">
+                    {language === "en"
+                      ? "How long a login token stays valid before the user is required to log in again."
+                      : "Thời gian token đăng nhập còn hiệu lực trước khi người dùng phải đăng nhập lại."}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={sessionTimeoutMinutes}
+                      onChange={(e) => setSessionTimeoutMinutes(Math.max(1, Number(e.target.value)))}
+                      className="w-32 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none"
+                    />
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      {language === "en" ? "minutes" : "phút"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

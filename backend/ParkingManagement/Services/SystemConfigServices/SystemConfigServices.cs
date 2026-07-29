@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using ParkingManagement.Data;
 using ParkingManagement.Models;
 using ParkingManagement.DTOs.Admin;
@@ -12,10 +13,17 @@ namespace ParkingManagement.Services
     public class SystemConfigService : ISystemConfigService
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
 
-        public SystemConfigService(AppDbContext context)
+        // Settings changed here are re-read from the DB at most every 30s by hot paths,
+        // instead of on every single request.
+        private const int SettingCacheSeconds = 30;
+        private static string CacheKey(string key) => $"sys_setting_{key}";
+
+        public SystemConfigService(AppDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<IEnumerable<SystemSetting>> GetAllSettingsAsync()
@@ -40,6 +48,9 @@ namespace ParkingManagement.Services
             setting.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            // Drop the cached value so hot paths (rate limiter, login) pick up the change quickly.
+            _cache.Remove(CacheKey(key));
 
             try
             {
@@ -103,10 +114,31 @@ namespace ParkingManagement.Services
             }
         }
 
+        public async Task<int> GetIntSettingAsync(string key, int defaultValue)
+        {
+            if (_cache.TryGetValue(CacheKey(key), out int cached))
+            {
+                return cached;
+            }
+
+            var raw = await _context.SystemSettings
+                .Where(s => s.SettingKey == key)
+                .Select(s => s.SettingValue)
+                .FirstOrDefaultAsync();
+
+            var value = (raw != null && int.TryParse(raw, out var parsed)) ? parsed : defaultValue;
+
+            _cache.Set(CacheKey(key), value, TimeSpan.FromSeconds(SettingCacheSeconds));
+            return value;
+        }
+
         private async Task SeedDefaultSettingsAsync()
         {
             var defaults = new List<SystemSetting>
             {
+                new() { SettingKey = "rateLimitRequests", SettingValue = "100", Description = "Max requests per window (per IP, regular users only)" },
+                new() { SettingKey = "rateLimitWindowSeconds", SettingValue = "60", Description = "Rate limit window (seconds)" },
+                new() { SettingKey = "sessionTimeoutMinutes", SettingValue = "60", Description = "Login session (JWT) timeout (minutes)" },
                 new() { SettingKey = "lostTicketFee", SettingValue = "50000", Description = "Lost Ticket Fee (VND)" },
                 new() { SettingKey = "overtimePenaltyRate", SettingValue = "10000", Description = "Overtime Penalty Rate (VND per hour)" },
                 new() { SettingKey = "maxSpeedLimit", SettingValue = "5", Description = "Max Speed Limit (km/h)" },

@@ -5,6 +5,7 @@ import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import AdminUsers from '../pages/admin/Users'
 import AdminLogs from '../pages/admin/Logs'
+import AdminSettings from '../pages/admin/Settings'
 import Profile from '../pages/user/Profile'
 import { useLanguage } from '../hooks/useLanguage'
 
@@ -14,6 +15,7 @@ export default function AdminLayout() {
   const navigationItems = [
     { path: '/admin', label: language === 'en' ? 'User Accounts' : 'Quản lý người dùng', icon: <Users size={20} /> },
     { path: '/admin/logs', label: language === 'en' ? 'System Logs' : 'Nhật ký hệ thống', icon: <Terminal size={20} /> },
+    { path: '/admin/settings', label: language === 'en' ? 'Settings' : 'Cấu hình hệ thống', icon: <Settings size={20} /> },
   ]
 
   return (
@@ -33,6 +35,7 @@ export default function AdminLayout() {
           <Routes>
             <Route path="/" element={<AdminUsers />} />
             <Route path="/logs" element={<AdminLogs />} />
+            <Route path="/settings" element={<AdminSettings />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/*" element={<AdminUsers />} />
           </Routes>

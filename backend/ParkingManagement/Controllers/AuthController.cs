@@ -33,13 +33,16 @@ namespace ParkingManagement.Controllers.AuthController
 
         private readonly IEmailService _emailService;
 
-        public AuthController(AppDbContext context, IConfiguration configuration, IDistributedCache cache, IMemoryCache memoryCache, IEmailService emailService)
+        private readonly ParkingManagement.Services.ISystemConfigService _systemConfigService;
+
+        public AuthController(AppDbContext context, IConfiguration configuration, IDistributedCache cache, IMemoryCache memoryCache, IEmailService emailService, ParkingManagement.Services.ISystemConfigService systemConfigService)
         {
             _context = context;
             _configuration = configuration;
             _cache = cache;
             _memoryCache = memoryCache;
             _emailService = emailService;
+            _systemConfigService = systemConfigService;
         }
 
         [HttpPost("register")]
@@ -146,7 +149,7 @@ namespace ParkingManagement.Controllers.AuthController
                 FullName = cacheData.FullName,
                 Email = cacheData.Email,
                 Phone = cacheData.Phone,
-                Password = cacheData.Password, 
+                Password = cacheData.Password,
                 Username = "user_" + Guid.NewGuid().ToString("N").Substring(0, 8),
                 RoleId = 4,
                 Status = "ACTIVE",
@@ -290,7 +293,7 @@ namespace ParkingManagement.Controllers.AuthController
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequestDto request)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
             Console.WriteLine("\n======= KIỂM TRA TRẠNG THÁI VALIDATION LOGIN =======");
             // 1. Kiểm tra xem các trường dữ liệu có bị để trống/null từ client không
@@ -389,10 +392,13 @@ namespace ParkingManagement.Controllers.AuthController
             new Claim("session_id", Guid.NewGuid().ToString().Substring(0, 6))
              };
 
+            // Admin-configurable via Admin > Settings > Security (falls back to 60 minutes).
+            var sessionTimeoutMinutes = await _systemConfigService.GetIntSettingAsync("sessionTimeoutMinutes", 60);
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(60),
+                Expires = DateTime.UtcNow.AddMinutes(sessionTimeoutMinutes),
                 Issuer = issuer,
                 Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -409,7 +415,7 @@ namespace ParkingManagement.Controllers.AuthController
                 data = new
                 {
                     token = jwtToken,
-                    expires_in = 3600,
+                    expires_in = sessionTimeoutMinutes * 60,
                     token_type = "Bearer",
                     user = new
                     {
@@ -987,10 +993,13 @@ namespace ParkingManagement.Controllers.AuthController
             new Claim("session_id", Guid.NewGuid().ToString().Substring(0, 6))
              };
 
+                // Admin-configurable via Admin > Settings > Security (falls back to 60 minutes).
+                var sessionTimeoutMinutes = await _systemConfigService.GetIntSettingAsync("sessionTimeoutMinutes", 60);
+
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(claims),
-                    Expires = DateTime.UtcNow.AddMinutes(60),
+                    Expires = DateTime.UtcNow.AddMinutes(sessionTimeoutMinutes),
                     Issuer = issuer,
                     Audience = audience,
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -1008,7 +1017,7 @@ namespace ParkingManagement.Controllers.AuthController
                     data = new
                     {
                         token = jwtToken,
-                        expires_in = 3600,
+                        expires_in = sessionTimeoutMinutes * 60,
                         token_type = "Bearer",
                         user = new
                         {

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ParkingManagement.Services;
 
 namespace ParkingManagement.Middlewares
 {
@@ -35,7 +36,8 @@ namespace ParkingManagement.Middlewares
             public int Count { get; set; }
         }
 
-        public async Task InvokeAsync(HttpContext context)
+        // ISystemConfigService is scoped, so it's injected here (per-request) rather than via the constructor.
+        public async Task InvokeAsync(HttpContext context, ISystemConfigService configService)
         {
             if (context.User.Identity?.IsAuthenticated == true)
             {
@@ -48,23 +50,27 @@ namespace ParkingManagement.Middlewares
                 }
             }
 
+            // Admin-configurable via Admin > Settings > Security; falls back to appsettings.json if unset.
+            var limit = await configService.GetIntSettingAsync("rateLimitRequests", _options.Limit);
+            var windowSeconds = await configService.GetIntSettingAsync("rateLimitWindowSeconds", _options.WindowSeconds);
+
             var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             var key = $"rl_{ip}";
 
             var counter = _cache.GetOrCreate(key, entry =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(_options.WindowSeconds);
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(windowSeconds);
                 return new RateLimitCounter { Count = 0 };
             }) ?? new RateLimitCounter { Count = 0 };
 
             counter.Count++;
 
-            if (counter.Count > _options.Limit)
+            if (counter.Count > limit)
             {
-                _logger.LogWarning("Rate limit exceeded for IP {Ip}: {Count}/{Limit}", ip, counter.Count, _options.Limit);
+                _logger.LogWarning("Rate limit exceeded for IP {Ip}: {Count}/{Limit}", ip, counter.Count, limit);
                 context.Response.StatusCode = 429;
                 context.Response.ContentType = "application/json";
-                context.Response.Headers["Retry-After"] = _options.WindowSeconds.ToString();
+                context.Response.Headers["Retry-After"] = windowSeconds.ToString();
                 var body = JsonSerializer.Serialize(new { success = false, message = "Too many requests" });
                 await context.Response.WriteAsync(body);
                 return;
