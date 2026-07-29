@@ -249,7 +249,7 @@ namespace ParkingManagement.Controllers
                 </div>";
 
             // Gửi email bất đồng bộ (fire-and-forget) để không làm chậm API phản hồi cho Manager
-            _ = _emailService.SendEmailAsync(newStaff.Email, emailSubject, emailBody);
+            await _emailService.SendEmailAsync(newStaff.Email, emailSubject, emailBody);
 
             return StatusCode(201, new
             {

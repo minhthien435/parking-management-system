@@ -399,7 +399,7 @@ public class BookingService : IBookingService
                             userName, booking.BookingId, booking.LicensePlate, refund);
 
                         string subject = $"[eParking] Thông báo hủy đặt chỗ thành công - Đơn #{booking.BookingId}";
-                        _ = _emailService.SendEmailAsync(usr.Email, subject, htmlBody);
+                        await _emailService.SendEmailAsync(usr.Email, subject, htmlBody);
                     }
                 }
                 catch (Exception ex)
