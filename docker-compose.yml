@@ -22,6 +22,18 @@ services:
       - ./backend/ParkingManagement/wwwroot/uploads:/app/wwwroot/uploads
     restart: unless-stopped
 
+  python-ai:
+    container_name: parking-python-ai
+    build:
+      context: ./python-ai
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./python-ai/snapshots:/app/snapshots
+      - ./python-ai/models:/app/models
+    restart: unless-stopped
+
   frontend:
     container_name: parking-frontend
     build:
@@ -29,7 +41,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5173:5173"
-
 
     volumes:
       - ./frontend:/app
@@ -41,6 +52,8 @@ services:
       - VITE_API_BASE_URL=http://localhost:8080/api/v1
     depends_on:
       - backend
+      - python-ai
     restart: unless-stopped
+
 
 

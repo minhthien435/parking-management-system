@@ -534,7 +534,7 @@ namespace ParkingManagement.Controllers
                     logId = l.LogId,
                     userId = l.TargetUserId,
                     username = l.TargetUser != null ? l.TargetUser.Username : l.TargetUserId,
-                    actionBy = l.ActionByUser != null ? l.ActionByUser.Username : l.ActionBy,
+                    actionBy = l.ActionByUser != null ? (l.ActionByUser.FullName ?? l.ActionByUser.Username) : l.ActionBy,
                     action = l.Action,
                     reason = l.Reason,
                     createdAt = l.CreatedAt
