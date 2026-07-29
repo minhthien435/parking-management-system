@@ -45,7 +45,7 @@ namespace ParkingManagement.Repositories
                         userName, bkgId, plate, vehicleType, arrival, departure, amountPaid, paymentMethod, transactionId);
 
                     string subject = $"[eParking] Xác nhận thanh toán thành công - Đơn đặt chỗ #{bkgId}";
-                    _ = _emailService.SendEmailAsync(recipientEmail, subject, htmlBody);
+                    await _emailService.SendEmailAsync(recipientEmail, subject, htmlBody);
                 }
             }
             catch (Exception ex)

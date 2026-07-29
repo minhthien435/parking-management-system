@@ -109,7 +109,7 @@ namespace ParkingManagement.Controllers.AuthController
         <p>Mã OTP xác thực tài khoản của bạn là: <strong style='font-size:24px; color:blue;'>{OtpCode}</strong></p>
         <p>Mã này sẽ hết hạn sau 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>";
 
-            _ = _emailService.SendEmailAsync(request.Email, emailSubject, emailBody);
+            await _emailService.SendEmailAsync(request.Email, emailSubject, emailBody);
             return StatusCode(201, new
             {
                 success = true,
@@ -227,7 +227,7 @@ namespace ParkingManagement.Controllers.AuthController
         <strong style='font-size:24px; color:blue;'>{newOtpCode}</strong>
         <p>Mã này sẽ hết hạn sau 5 phút.</p>";
 
-            _ = _emailService.SendEmailAsync(request.Email, emailSubject, emailBody);
+            await _emailService.SendEmailAsync(request.Email, emailSubject, emailBody);
 
             return Ok(new { success = true, message = "A new OTP has been sent to your email." });
         }

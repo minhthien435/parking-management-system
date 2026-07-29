@@ -8,12 +8,18 @@ using ParkingManagement.Models;
 using ParkingManagement.Repositories;
 using ParkingManagement.Services.Helpers;
 
+using ParkingManagement.Data;
+using ParkingManagement.Services.EmailServices;
+using Microsoft.EntityFrameworkCore;
+
 namespace ParkingManagement.Services
 {
     public class ParkingService : IParkingService
     {
         private readonly IParkingRepository _parkingRepository;
         private readonly PayOS.PayOSClient _payOS;
+        private readonly IEmailService _emailService;
+        private readonly AppDbContext _context;
 
         private static readonly TimeZoneInfo _vnTz = TimeZoneInfo.FindSystemTimeZoneById(
             OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Ho_Chi_Minh");
@@ -57,10 +63,12 @@ namespace ParkingManagement.Services
             return targetTime;
         }
 
-        public ParkingService(IParkingRepository parkingRepository, PayOS.PayOSClient payOS)
+        public ParkingService(IParkingRepository parkingRepository, PayOS.PayOSClient payOS, IEmailService emailService, AppDbContext context)
         {
             _parkingRepository = parkingRepository;
             _payOS = payOS;
+            _emailService = emailService;
+            _context = context;
         }
 
         /// HÀM XỬ LÝ ĐIỀU HƯỚNG CHECK-OUT
@@ -219,6 +227,28 @@ namespace ParkingManagement.Services
                 await _parkingRepository.CreateSessionAsync(session);
                 await _parkingRepository.UpdateBookingStatusAsync(booking.BookingId, "COMPLETED", zone.ZoneId);
             });
+
+            // Gửi email thông báo Check-In thành công cho xe có Booking
+            try
+            {
+                var bookingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == booking.VehicleUserId);
+                if (bookingUser != null && !string.IsNullOrWhiteSpace(bookingUser.Email))
+                {
+                    string userName = bookingUser.FullName ?? bookingUser.Username ?? "Quý khách";
+                    string vehicleTypeName = zone.VehicleType?.VehicleTypeName ?? (booking.VehicleTypeId == 2 ? "Ô tô" : "Xe máy");
+                    string zoneName = zone.ZoneName ?? "Bãi đỗ xe";
+
+                    string htmlBody = EmailTemplateHelper.BuildCheckInSuccessEmailHtml(
+                        userName, booking.BookingId, booking.LicensePlate, vehicleTypeName, zoneName, checkInTime);
+
+                    string subject = $"[eParking] Thông báo xe đã vào bãi đỗ (Check-in) - Biển số {booking.LicensePlate}";
+                    await _emailService.SendEmailAsync(bookingUser.Email, subject, htmlBody);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CheckInEmail Error] {ex.Message}");
+            }
         
             return MapToCheckInResponseDto(sessionId, null, checkInTime, dto.LicensePlateIn, zone, booking.BookingId);
         }
@@ -353,6 +383,43 @@ namespace ParkingManagement.Services
                 }
             });
 
+            // Gửi email thông báo Check-Out hoàn thành lượt đỗ nếu là xe có Booking
+            try
+            {
+                if (!string.IsNullOrEmpty(session.BookingId))
+                {
+                    var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.BookingId == session.BookingId);
+                    if (booking != null && !string.IsNullOrWhiteSpace(booking.VehicleUserId))
+                    {
+                        var bookingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == booking.VehicleUserId);
+                        if (bookingUser != null && !string.IsNullOrWhiteSpace(bookingUser.Email))
+                        {
+                            string userName = bookingUser.FullName ?? bookingUser.Username ?? "Quý khách";
+                            var vehicleTypeObj = await _context.VehicleTypes.FirstOrDefaultAsync(vt => vt.VehicleTypeId == session.VehicleTypeId);
+                            string vehicleTypeName = vehicleTypeObj?.VehicleTypeName ?? (session.VehicleTypeId == 2 ? "Ô tô" : "Xe máy");
+                            DateTime checkIn = session.CheckInTime ?? checkOutTime;
+
+                            string htmlBody = EmailTemplateHelper.BuildCheckOutSuccessEmailHtml(
+                                userName,
+                                session.BookingId,
+                                session.LicensePlateIn ?? checkOutDto.LicensePlateOut ?? "N/A",
+                                vehicleTypeName,
+                                checkIn,
+                                checkOutTime,
+                                durationMinutes,
+                                finalFee);
+
+                            string subject = $"[eParking] Thông báo hoàn thành lượt đỗ xe (Check-out) - Biển số {session.LicensePlateIn ?? checkOutDto.LicensePlateOut}";
+                            await _emailService.SendEmailAsync(bookingUser.Email, subject, htmlBody);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CheckOutEmail Error] {ex.Message}");
+            }
+
             return MapToCheckOutResponseDto(session, finalFee, durationMinutes, checkOutTime);
         }
 
@@ -474,6 +541,44 @@ namespace ParkingManagement.Services
                     await _parkingRepository.CreatePaymentAsync(payment);
                 }
             });
+
+            // Gửi email thông báo Check-Out hoàn thành lượt đỗ cho Booking
+            try
+            {
+                string? bookingId = session.BookingId;
+                if (!string.IsNullOrEmpty(bookingId))
+                {
+                    var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.BookingId == bookingId);
+                    if (booking != null && !string.IsNullOrWhiteSpace(booking.VehicleUserId))
+                    {
+                        var bookingUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == booking.VehicleUserId);
+                        if (bookingUser != null && !string.IsNullOrWhiteSpace(bookingUser.Email))
+                        {
+                            string userName = bookingUser.FullName ?? bookingUser.Username ?? "Quý khách";
+                            var vehicleTypeObj = await _context.VehicleTypes.FirstOrDefaultAsync(vt => vt.VehicleTypeId == session.VehicleTypeId);
+                            string vehicleTypeName = vehicleTypeObj?.VehicleTypeName ?? (session.VehicleTypeId == 2 ? "Ô tô" : "Xe máy");
+                            DateTime checkIn = session.CheckInTime ?? checkOutTime;
+
+                            string htmlBody = EmailTemplateHelper.BuildCheckOutSuccessEmailHtml(
+                                userName,
+                                bookingId,
+                                session.LicensePlateIn ?? checkOutDto.LicensePlateOut ?? "N/A",
+                                vehicleTypeName,
+                                checkIn,
+                                checkOutTime,
+                                durationMinutes,
+                                totalExtraFee);
+
+                            string subject = $"[eParking] Thông báo hoàn thành lượt đỗ xe (Check-out) - Biển số {session.LicensePlateIn ?? checkOutDto.LicensePlateOut}";
+                            await _emailService.SendEmailAsync(bookingUser.Email, subject, htmlBody);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[BookingCheckOutEmail Error] {ex.Message}");
+            }
 
             return MapToCheckOutResponseDto(session, totalExtraFee, durationMinutes, checkOutTime);
         }       
