@@ -7,3 +7,6 @@ easyocr>=1.7.1
 filterpy>=1.4.5
 torch
 torchvision
+flask
+flask-cors
+
