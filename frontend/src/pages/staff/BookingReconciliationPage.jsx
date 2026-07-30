@@ -19,6 +19,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { useLanguage } from "../../hooks/useLanguage";
+import { toast } from "sonner";
 
 const t = {
   vi: {
@@ -190,7 +191,6 @@ export default function BookingReconciliationPage() {
   const { language } = useLanguage();
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -202,17 +202,16 @@ export default function BookingReconciliationPage() {
 
   const fetchBookings = async () => {
     setIsLoading(true);
-    setErrorMsg("");
     try {
       const response = await api.get("/bookings/staff-all");
       if (response.data && response.data.success) {
         setBookings(response.data.data || []);
       } else {
-        setErrorMsg(t[language].errorLoad);
+        toast.error(t[language].errorLoad);
       }
     } catch (error) {
       console.error("Error loading bookings:", error);
-      setErrorMsg(t[language].errorLoad);
+      toast.error(t[language].errorLoad);
     } finally {
       setIsLoading(false);
     }
@@ -397,12 +396,6 @@ export default function BookingReconciliationPage() {
 
       {/* DATATABLE VIEWPORT */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-4 flex-1 min-h-0 flex flex-col shadow-sm overflow-hidden transition-all">
-        {errorMsg && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 text-xs font-semibold rounded-md flex items-center gap-2 shrink-0">
-            <Info size={14} />
-            {errorMsg}
-          </div>
-        )}
 
         <div className="overflow-y-auto flex-1 min-h-0 relative pr-1">
 
@@ -830,7 +823,7 @@ export default function BookingReconciliationPage() {
             <div className="px-5 py-4 bg-slate-50 dark:bg-slate-850/40 border-t border-slate-200 dark:border-slate-800 flex justify-end shrink-0">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="px-5 py-2 bg-blue-650 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all"
               >
                 {t[language].btnClose}
               </button>

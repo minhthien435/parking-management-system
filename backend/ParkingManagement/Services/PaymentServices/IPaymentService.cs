@@ -25,5 +25,10 @@ namespace ParkingManagement.Services
         /// Tiếp nhận và xử lý tín hiệu phản hồi tự động (Webhook) từ cổng thanh toán PayOS khi khách hàng chuyển tiền xong.
         /// </summary>
         Task<bool> ProcessPayOsWebhookAsync(PayOS.Models.Webhooks.Webhook webhookData);
+
+        /// <summary>
+        /// Chủ động xác nhận/kiểm tra kết quả thanh toán PayOS từ trang return_url hoặc orderCode.
+        /// </summary>
+        Task<bool> ConfirmPayOsPaymentAsync(long orderCode, string? bookingId = null);
     }
 }

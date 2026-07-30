@@ -73,6 +73,19 @@ namespace ParkingManagement.Controllers
                     early_minutes = earlyMinutes
                 });
             }
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("VEHICLE_TYPE_MISMATCH:"))
+            {
+                var parts = ex.Message.Split(':');
+                string bookedType = parts.Length > 1 ? parts[1] : "Loại xe đã đặt";
+                string actualType = parts.Length > 2 ? parts[2] : "Loại xe thực tế";
+
+                return StatusCode(StatusCodes.Status400BadRequest, new
+                {
+                    success = false,
+                    error_code = "VEHICLE_TYPE_MISMATCH",
+                    message = $"Loại phương tiện check-in thực tế ({actualType}) không khớp với loại phương tiện đã đăng ký đặt chỗ ({bookedType}) cho biển số này."
+                });
+            }
             catch (InvalidOperationException ex) when (ex.Message == "ACTIVE_SESSION_EXISTS")
             {
                 return StatusCode(StatusCodes.Status409Conflict, new

@@ -20,6 +20,7 @@ import {
   Hash,
 } from "lucide-react";
 import { useLanguage } from "../../hooks/useLanguage";
+import { toast } from "sonner";
 
 const fmtVND = (val) => (val != null ? val.toLocaleString("vi-VN") : "0");
 
@@ -29,10 +30,8 @@ export default function SessionLookup() {
   const [ticketCode, setTicketCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [error, setError] = useState("");
   const [session, setSession] = useState(null);
   const [loadingPay, setLoadingPay] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [graceSeconds, setGraceSeconds] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("PAYOS");
@@ -51,10 +50,14 @@ export default function SessionLookup() {
     }
 
     if (status === "success") {
-      setSuccessMessage(language === "en" ? "PayOS payment succeeded! Your parking session is paid." : "Thanh toán PayOS thành công! Phiên gửi xe đã được thanh toán.");
+      toast.success(language === "en" ? "PayOS Payment Successful" : "Thanh toán PayOS thành công", {
+        description: language === "en" ? "Your parking session is paid." : "Phiên gửi xe đã được thanh toán."
+      });
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (status === "cancelled") {
-      setError(language === "en" ? "PayOS payment was cancelled." : "Thanh toán PayOS đã bị hủy bỏ.");
+      toast.error(language === "en" ? "PayOS Payment Cancelled" : "Thanh toán PayOS đã bị hủy", {
+        description: language === "en" ? "PayOS payment was cancelled." : "Thanh toán PayOS đã bị hủy bỏ."
+      });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
@@ -145,8 +148,6 @@ export default function SessionLookup() {
     }
     if (!isSilent) {
       setLoading(true);
-      setError("");
-      setSuccessMessage("");
     }
     try {
       const cleanPlate = licensePlate.replace(/[-.\s]/g, "").toUpperCase();
@@ -160,20 +161,20 @@ export default function SessionLookup() {
         localStorage.setItem("qp_ticketCode", ticketCode);
       } else {
         setSession(null);
-        setError(language === "en"
-          ? "License plate not found."
-          : "Không tìm thấy biển số xe.");
+        if (!isSilent) toast.error(language === "en" ? "Not Found" : "Không tìm thấy", {
+          description: language === "en" ? "License plate not found." : "Không tìm thấy biển số xe."
+        });
       }
     } catch (err) {
       setSession(null);
       if (err.response?.status === 404) {
-        setError(language === "en"
-          ? "License plate or ticket code not found."
-          : "Không tìm thấy biển số xe hoặc mã vé.");
+        if (!isSilent) toast.error(language === "en" ? "Not Found" : "Không tìm thấy", {
+          description: language === "en" ? "License plate or ticket code not found." : "Không tìm thấy biển số xe hoặc mã vé."
+        });
       } else {
-        setError(err.response?.data?.message || (language === "en"
-          ? "License plate or ticket code not found."
-          : "Không tìm thấy biển số xe hoặc mã vé."));
+        if (!isSilent) toast.error(language === "en" ? "Error" : "Lỗi", {
+          description: err.response?.data?.message || (language === "en" ? "License plate or ticket code not found." : "Không tìm thấy biển số xe hoặc mã vé.")
+        });
       }
     } finally {
       if (!isSilent) { setLoading(false); setSearched(true); }
@@ -183,8 +184,6 @@ export default function SessionLookup() {
   const handlePay = async () => {
     if (!session || !session.session_id) return;
     setLoadingPay(true);
-    setSuccessMessage("");
-    setError("");
     try {
       // Save search parameters to restore on return
       localStorage.setItem("qp_licensePlate", licensePlate);
@@ -201,12 +200,16 @@ export default function SessionLookup() {
         if (res.data.payment_url) {
           window.location.href = res.data.payment_url;
         } else {
-          setSuccessMessage(res.data.message || (language === "en" ? "Payment successful!" : "Thanh toán thành công!"));
+          toast.success(language === "en" ? "Payment Successful" : "Thanh toán thành công", {
+            description: res.data.message || (language === "en" ? "Payment successful!" : "Thanh toán thành công!")
+          });
           await handleSearch(null, true);
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại."));
+      toast.error(language === "en" ? "Payment Failed" : "Thanh toán thất bại", {
+        description: err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại.")
+      });
     } finally {
       setLoadingPay(false);
     }
@@ -291,21 +294,10 @@ export default function SessionLookup() {
               </button>
             </form>
 
-            {/* Error Notification */}
-            {searched && error && (
-              <div className="mt-4 flex items-start gap-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-4 animate-fade-in">
-                <AlertCircle className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-rose-700 dark:text-rose-400">
-                    {language === "en" ? "Error" : "Lỗi"}
-                  </p>
-                  <p className="text-xs text-rose-800 dark:text-rose-400/70 mt-0.5 leading-relaxed">{error}</p>
-                </div>
-              </div>
-            )}
+
+            </div>
 
 
-          </div>
 
           {/* RIGHT COLUMN: Instructions/Guide */}
           <div className="lg:col-span-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-5 border border-slate-100 dark:border-slate-800/60 flex flex-col justify-center">

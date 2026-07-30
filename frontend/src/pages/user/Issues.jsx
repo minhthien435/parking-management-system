@@ -675,7 +675,7 @@ export default function Issues() {
                             <span>✓</span>
                             {ticket.resolved_by && (
                               <span className="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 rounded font-sans text-[9px] uppercase">
-                                {language === "en" ? "Resolved by:" : "Người duyệt:"} {ticket.resolved_by}
+                                {language === "en" ? "Resolved by:" : "Người duyệt:"} {ticket.resolved_by_name || ticket.resolvedByName || ticket.resolved_by}
                               </span>
                             )}
                             <span>

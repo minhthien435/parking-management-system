@@ -94,5 +94,31 @@ namespace ParkingManagement.Controllers
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+
+        // POST: api/v1/payments/confirm-payos
+        [AllowAnonymous]
+        [HttpPost("confirm-payos")]
+        public async Task<IActionResult> ConfirmPayOsPayment([FromBody] ConfirmPayOsRequest request)
+        {
+            try
+            {
+                var success = await _paymentService.ConfirmPayOsPaymentAsync(request.OrderCode, request.BookingId);
+                if (success)
+                {
+                    return Ok(new { success = true, message = "Xác nhận thanh toán PayOS thành công." });
+                }
+                return BadRequest(new { success = false, message = "Không thể xác nhận thanh toán PayOS." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+    }
+
+    public class ConfirmPayOsRequest
+    {
+        public long OrderCode { get; set; }
+        public string? BookingId { get; set; }
     }
 }

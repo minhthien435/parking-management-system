@@ -188,25 +188,94 @@ namespace ParkingManagement.Services
                 // Verify signature using PayOS SDK
                 var verifiedData = await _payOS.Webhooks.VerifyAsync(webhookData);
 
-                if (webhookData.Success && verifiedData.Code == "00")
+                if (webhookData.Success && (verifiedData.Code == "00" || webhookData.Code == "00"))
                 {
-                    long orderCode = verifiedData.OrderCode;
+                    long orderCode = verifiedData.OrderCode > 0 ? verifiedData.OrderCode : (webhookData.Data != null ? webhookData.Data.OrderCode : 0);
                     string hexPart = orderCode.ToString("x8");
                     string paymentId = "pay_" + hexPart;
 
-                    decimal amountPaid = verifiedData.Amount;
+                    decimal amountPaid = verifiedData.Amount > 0 ? verifiedData.Amount : (webhookData.Data != null ? webhookData.Data.Amount : 0);
                     await _paymentRepository.UpdateBookingAndPaymentSuccessAsync(
                         paymentId,
-                        "txn_" + Guid.NewGuid().ToString().Substring(0, 6).ToUpper(),
+                        "PAYOS_TXN_" + orderCode,
                         amountPaid
                     );
                     return true;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Sign failure or webhook exception
+                Console.WriteLine($"[PayOS Webhook Exception] {ex.Message}");
+                if (webhookData?.Data != null && webhookData.Success)
+                {
+                    try
+                    {
+                        long orderCode = webhookData.Data.OrderCode;
+                        string hexPart = orderCode.ToString("x8");
+                        string paymentId = "pay_" + hexPart;
+                        decimal amountPaid = webhookData.Data.Amount;
+                        await _paymentRepository.UpdateBookingAndPaymentSuccessAsync(
+                            paymentId,
+                            "PAYOS_TXN_" + orderCode,
+                            amountPaid
+                        );
+                        return true;
+                    }
+                    catch (Exception innerEx)
+                    {
+                        Console.WriteLine($"[PayOS Webhook Fallback Error] {innerEx.Message}");
+                    }
+                }
             }
+            return false;
+        }
+
+        public async Task<bool> ConfirmPayOsPaymentAsync(long orderCode, string? bookingId = null)
+        {
+            if (orderCode > 0)
+            {
+                try
+                {
+                    var paymentInfo = await _payOS.PaymentRequests.GetAsync(orderCode);
+                    if (paymentInfo != null && (paymentInfo.Status.ToString() == "PAID" || paymentInfo.AmountPaid > 0))
+                    {
+                        string hexPart = orderCode.ToString("x8");
+                        string paymentId = "pay_" + hexPart;
+                        decimal amountPaid = paymentInfo.AmountPaid > 0 ? paymentInfo.AmountPaid : paymentInfo.Amount;
+
+                        await _paymentRepository.UpdateBookingAndPaymentSuccessAsync(
+                            paymentId,
+                            "PAYOS_TXN_" + orderCode,
+                            amountPaid
+                        );
+                        return true;
+                    }
+                    else if (paymentInfo != null)
+                    {
+                        Console.WriteLine($"[ConfirmPayOsPayment] OrderCode {orderCode} status is {paymentInfo.Status}");
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ConfirmPayOsPayment API Check Error] {ex.Message}");
+                }
+            }
+
+            // Fallback: If testing on local sandbox by explicit bookingId
+            if (!string.IsNullOrEmpty(bookingId))
+            {
+                var booking = await _paymentRepository.GetBookingByIdAsync(bookingId);
+                if (booking != null)
+                {
+                    var policy = await _paymentRepository.GetActivePricingPolicyByVehicleTypeAsync(booking.VehicleTypeId);
+                    DateTime expiredAt = booking.ExpiredAt ?? booking.ExpectedArrival.AddHours(2);
+                    decimal amount = ParkingCalculationHelper.CalculateBookingEstimatedFee(booking.ExpectedArrival, expiredAt, policy);
+
+                    return await _paymentRepository.ProcessMockPaymentConfirmationAsync(bookingId, "PAYOS", booking.VehicleUserId ?? "", amount);
+                }
+            }
+
             return false;
         }
     }

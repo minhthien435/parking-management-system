@@ -82,40 +82,58 @@ namespace ParkingManagement.Repositories
             {
                 try
                 {
-                    var payment = await _context.Payments.FirstOrDefaultAsync(p => p.PaymentId == paymentId);
-                    if (payment != null)
+                    var payment = await _context.Payments.AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.PaymentId.ToLower() == paymentId.ToLower());
+        
+                    if (payment == null)
                     {
-                        payment.Status = "SUCCESS";
-                        payment.TransactionId = transactionId;
-                        payment.PaymentTime = ParkingCalculationHelper.VnNow;
-                        payment.AmountPaid = amountPaid;
-
-                        if (!string.IsNullOrEmpty(payment.BookingId))
+                        Console.WriteLine($"[UpdateBookingAndPaymentSuccessAsync] Không tìm thấy payment khớp paymentId={paymentId}.");
+                        await transaction.RollbackAsync();
+                        return;
+                    }
+        
+                    var vnNow = ParkingCalculationHelper.VnNow;
+                    decimal finalAmount = amountPaid > 0 ? amountPaid : payment.AmountDue;
+        
+                    // Chặn race condition ở cấp DB: UPDATE có điều kiện, atomic.
+                    // Chỉ request nào "thắng" (affectedRows == 1) mới được xử lý tiếp + gửi mail.
+                    int affectedRows = await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                        UPDATE `payment`
+                        SET `STATUS` = 'SUCCESS',
+                            `TRANSACTION_ID` = {transactionId},
+                            `PAYMENT_TIME` = {vnNow},
+                            `AMOUNT_PAID` = {finalAmount}
+                        WHERE `PAYMENT_ID` = {payment.PaymentId} AND `STATUS` <> 'SUCCESS'");
+        
+                    if (affectedRows == 0)
+                    {
+                        Console.WriteLine($"[UpdateBookingAndPaymentSuccessAsync] Payment {payment.PaymentId} đã được xử lý bởi request khác. Bỏ qua.");
+                        await transaction.RollbackAsync();
+                        return;
+                    }
+        
+                    if (!string.IsNullOrEmpty(payment.BookingId))
+                    {
+                        var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.BookingId == payment.BookingId);
+                        if (booking != null) booking.Status = "CONFIRMED";
+                    }
+        
+                    if (!string.IsNullOrEmpty(payment.SessionId))
+                    {
+                        var session = await _context.ParkingSessions.FirstOrDefaultAsync(s => s.SessionId == payment.SessionId);
+                        if (session != null)
                         {
-                            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.BookingId == payment.BookingId);
-                            if (booking != null)
-                            {
-                                booking.Status = "CONFIRMED";
-                            }
+                            session.PaymentStatus = "PAID";
+                            session.TotalFee = finalAmount;
                         }
-
-                        if (!string.IsNullOrEmpty(payment.SessionId))
-                        {
-                            var session = await _context.ParkingSessions.FirstOrDefaultAsync(s => s.SessionId == payment.SessionId);
-                            if (session != null)
-                            {
-                                session.PaymentStatus = "PAID";
-                                session.TotalFee = amountPaid;
-                            }
-                        }
-
-                        await _context.SaveChangesAsync();
-                        await transaction.CommitAsync();
-
-                        if (!string.IsNullOrEmpty(payment.BookingId))
-                        {
-                            await SendPaymentEmailNotificationAsync(payment.BookingId, payment.PaymentMethod ?? "VNPAY", payment.TransactionId ?? transactionId, amountPaid);
-                        }
+                    }
+        
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+        
+                    if (!string.IsNullOrEmpty(payment.BookingId))
+                    {
+                        await SendPaymentEmailNotificationAsync(payment.BookingId, payment.PaymentMethod ?? "VNPAY", transactionId, finalAmount);
                     }
                 }
                 catch (Exception)

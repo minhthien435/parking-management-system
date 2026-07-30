@@ -40,11 +40,6 @@ public class EmailService : IEmailService
 
     public async Task SendEmailAsync(string toEmail, string subject, string body)
     {
-        // Bỏ qua xác thực SSL UntrustedRoot cho SmtpClient trong môi trường Docker
-#pragma warning disable SYSLIB0014
-        ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
-#pragma warning restore SYSLIB0014
-
         // 1. Nếu cấu hình là Brevo v3 API Key (bắt đầu bằng 'xkeysib-'), gửi qua Brevo HTTP API
         if (!string.IsNullOrEmpty(_mailSettings.Password) && _mailSettings.Password.StartsWith("xkeysib-"))
         {
@@ -52,39 +47,39 @@ public class EmailService : IEmailService
             if (isBrevoSuccess) return;
         }
 
-        // 2. Gửi qua SMTP (Tương thích với Gmail, Brevo SMTP Key 'xsmtpsib-', và các SMTP Server khác)
+        // 2. Gửi qua SMTP bằng MailKit (Khắc phục triệt để lỗi UntrustedRoot trong Docker & Linux)
         try
         {
-            var message = new MailMessage
+            var mimeMessage = new MimeKit.MimeMessage();
+            mimeMessage.From.Add(new MimeKit.MailboxAddress(_mailSettings.DisplayName ?? "Parking Management", _mailSettings.Mail));
+            mimeMessage.To.Add(new MimeKit.MailboxAddress(toEmail, toEmail));
+            mimeMessage.Subject = subject;
+
+            var bodyBuilder = new MimeKit.BodyBuilder
             {
-                From = new MailAddress(_mailSettings.Mail, _mailSettings.DisplayName),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = true
+                HtmlBody = body
             };
-            message.To.Add(new MailAddress(toEmail));
+            mimeMessage.Body = bodyBuilder.ToMessageBody();
 
             var login = string.IsNullOrEmpty(_mailSettings.Username) ? _mailSettings.Mail : _mailSettings.Username;
-            using var client = new SmtpClient(_mailSettings.Host, _mailSettings.Port)
-            {
-                Credentials = new NetworkCredential(login, _mailSettings.Password),
-                EnableSsl = true
-            };
 
-            await client.SendMailAsync(message);
+            using var client = new MailKit.Net.Smtp.SmtpClient();
 
-            _logger.LogInformation($"[EmailService] Gửi email SMTP thành công tới: {toEmail}");
+            // Cho phép tất cả chứng chỉ SSL/TLS (Bỏ qua hoàn toàn UntrustedRoot khi chạy trong Docker/Linux)
+            client.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+
+            await client.ConnectAsync(_mailSettings.Host, _mailSettings.Port, MailKit.Security.SecureSocketOptions.Auto);
+            await client.AuthenticateAsync(login, _mailSettings.Password);
+            await client.SendAsync(mimeMessage);
+            await client.DisconnectAsync(true);
+
+            _logger.LogInformation($"[EmailService] Gửi email SMTP MailKit thành công tới: {toEmail}");
         }
-        catch (SmtpException smtpEx)
+        catch (Exception smtpEx)
         {
             var errorDetails = smtpEx.InnerException != null ? $"{smtpEx.Message} (Chi tiết: {smtpEx.InnerException.Message})" : smtpEx.Message;
-            _logger.LogError($"[EmailService] Lỗi SMTP: {errorDetails}");
+            _logger.LogError($"[EmailService] Lỗi SMTP MailKit: {errorDetails}");
             await SaveLogToDatabaseAsync("Error", $"Lỗi gửi mail SMTP tới {toEmail}. Chi tiết: {errorDetails}", "EmailService");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"[EmailService] Lỗi hệ thống: {ex.Message}");
-            await SaveLogToDatabaseAsync("Critical", $"Lỗi hệ thống khi gửi mail tới {toEmail}. Chi tiết: {ex.Message}", "EmailService");
         }
     }
 

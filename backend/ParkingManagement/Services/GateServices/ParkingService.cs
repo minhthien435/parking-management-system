@@ -145,6 +145,15 @@ namespace ParkingManagement.Services
         
             var booking = await _parkingRepository.GetValidBookingByLicensePlateAsync(dto.LicensePlateIn, VnNow)
                           ?? throw new KeyNotFoundException("NO_VALID_BOOKING_FOUND_FOR_THIS_PLATE");
+
+            if (dto.VehicleTypeId != booking.VehicleTypeId)
+            {
+                var actualType = await _context.VehicleTypes.FindAsync(dto.VehicleTypeId);
+                string actualTypeName = actualType?.VehicleTypeName ?? (dto.VehicleTypeId == 2 ? "Ô tô" : "Xe máy");
+                string bookedTypeName = booking.VehicleType?.VehicleTypeName ?? (booking.VehicleTypeId == 2 ? "Ô tô" : "Xe máy");
+
+                throw new InvalidOperationException($"VEHICLE_TYPE_MISMATCH:{bookedTypeName}:{actualTypeName}");
+            }
         
             var earlyMinutes = (booking.ExpectedArrival - VnNow).TotalMinutes;
             if (earlyMinutes > 15 && !dto.ConfirmEarlyIn)

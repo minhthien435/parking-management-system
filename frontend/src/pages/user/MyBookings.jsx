@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   ArrowLeft,
   Car,
@@ -39,6 +39,7 @@ import api from "../../utils/api";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useAuth } from "../../hooks/useAuth";
 import { jsPDF } from "jspdf";
+import { toast } from "sonner";
 
 const removeVietnameseTones = (str) => {
   if (!str) return "";
@@ -75,6 +76,7 @@ export default function MyBookings() {
   });
 
   const [bookings, setBookings] = useState([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date().getTime());
   const [expandedBookings, setExpandedBookings] = useState({});
 
@@ -93,6 +95,13 @@ export default function MyBookings() {
   const [cancelCountdown, setCancelCountdown] = useState(5);
   const [paymentMethod, setPaymentMethod] = useState("PAYOS");
   const [processingPayment, setProcessingPayment] = useState(false);
+  const paymentCallbackHandledRef = useRef(false);
+
+  const showNotice = (title, message, type = "success") => {
+    if (type === "success") toast.success(title, { description: message });
+    else if (type === "error") toast.error(title, { description: message });
+    else toast(title, { description: message });
+  };
 
   const toggleExpand = (bookingId) => {
     setExpandedBookings((prev) => ({
@@ -103,6 +112,7 @@ export default function MyBookings() {
 
   // Load dashboard and active bookings
   const loadBookingDashboard = async () => {
+    setIsLoadingBookings(true);
     try {
       const activeRes = await api.get("/bookings/my");
       if (activeRes.data && activeRes.data.success) {
@@ -112,7 +122,7 @@ export default function MyBookings() {
           // typeId 1 = Motorbike, typeId 2 = Car (theo DB schema)
           // Chỉ coi là Car khi typeId = 2, hoặc typeId chưa xác định nhưng tên chứa "car"/"ô tô"
           const isCar = typeId === 2 || (typeId !== 1 && (typeNameLower.includes("car") || typeNameLower.includes("ô tô")));
-          const defaultPrice = isCar ? 15000 : 5000;
+          const defaultPrice = isCar ? 30000 : 15000;
           return {
             id: b.booking_id,
             slotId: b.slot_id || "N/A",
@@ -123,8 +133,8 @@ export default function MyBookings() {
             plate_number: b.license_plate,
             startTime: b.expected_arrival,
             endTime: b.expired_at,
-            totalPrice: b.estimated_fee || b.deposit_paid || defaultPrice,
-            depositPaid: (b.status?.toLowerCase() === "cancelled" && (b.notes || "").toLowerCase() === "unpaid") ? 0 : (b.deposit_paid || defaultPrice),
+            totalPrice: b.estimated_fee || defaultPrice,
+            depositPaid: b.deposit_paid ?? 0,
             earlyFee: b.early_fee || 0,
             penaltyFee: b.penalty_fee || 0,
             actualCheckIn: b.actual_check_in || null,
@@ -152,12 +162,19 @@ export default function MyBookings() {
       }
     } catch (error) {
       console.error("Lỗi đồng bộ API đặt chỗ:", error);
+    } finally {
+      setIsLoadingBookings(false);
     }
   };
 
   useEffect(() => {
+    if (paymentCallbackHandledRef.current) return;
+    paymentCallbackHandledRef.current = true;
+
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status");
+    const cancelParam = params.get("cancel");
+    const code = params.get("code");
     const vnpResponseCode = params.get("vnp_ResponseCode");
 
     if (vnpResponseCode) {
@@ -170,29 +187,51 @@ export default function MyBookings() {
         };
         api.post("/payments/webhook/vnpay", payload)
           .then(() => {
-            alert(language === "en" ? "Payment successful! Your booking is confirmed." : "Thanh toán thành công! Lịch đặt chỗ của bạn đã được xác nhận.");
             loadBookingDashboard();
             window.history.replaceState({}, document.title, window.location.pathname);
           })
           .catch((err) => {
             console.error("Lỗi xác nhận VNPay:", err);
-            alert(language === "en" ? "Failed to confirm payment." : "Xác nhận thanh toán thất bại.");
             loadBookingDashboard();
             window.history.replaceState({}, document.title, window.location.pathname);
           });
       } else {
-        alert(language === "en" ? "Payment failed or cancelled." : "Thanh toán thất bại hoặc đã bị hủy.");
+        toast.error(language === "en" ? "Payment Failed" : "Thanh toán thất bại", {
+          description: language === "en" ? "Payment failed or cancelled." : "Thanh toán thất bại hoặc đã bị hủy."
+        });
         loadBookingDashboard();
         window.history.replaceState({}, document.title, window.location.pathname);
       }
-    } else if (status === "success") {
-      alert(language === "en" ? "PayOS payment succeeded! Your booking is confirmed." : "Thanh toán PayOS thành công! Lịch đặt chỗ của bạn đã được xác nhận.");
+    } else if (cancelParam === "true" || status === "CANCELLED" || status === "cancelled") {
+      toast.error(language === "en" ? "Payment Cancelled" : "Hủy thanh toán", {
+        description: language === "en" ? "PayOS payment was cancelled." : "Thanh toán PayOS đã bị hủy bỏ."
+      });
       loadBookingDashboard();
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (status === "cancelled") {
-      alert(language === "en" ? "PayOS payment was cancelled." : "Thanh toán PayOS đã bị hủy bỏ.");
-      loadBookingDashboard();
-      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (status === "PAID" || status === "success" || (code === "00" && cancelParam !== "true" && status !== "CANCELLED" && status !== "cancelled")) {
+      const orderCodeVal = params.get("orderCode") || params.get("order_code") || "0";
+      api.post("/payments/confirm-payos", { order_code: Number(orderCodeVal) })
+        .then((res) => {
+          if (res.data && res.data.success) {
+            toast.success(language === "en" ? "Payment Successful" : "Thanh toán thành công", {
+              description: language === "en" ? "Your booking is now confirmed." : "Booking của bạn đã được xác nhận."
+            });
+          } else {
+            toast.error(language === "en" ? "Payment Verification Failed" : "Xác nhận thanh toán thất bại", {
+              description: language === "en" ? "PayOS payment could not be verified." : "Không thể xác nhận thanh toán PayOS."
+            });
+          }
+          loadBookingDashboard();
+          window.history.replaceState({}, document.title, window.location.pathname);
+        })
+        .catch((err) => {
+          console.error("Lỗi xác nhận PayOS:", err);
+          toast.error(language === "en" ? "Payment Failed" : "Thanh toán thất bại", {
+            description: language === "en" ? "PayOS payment verification failed." : "Xác nhận thanh toán PayOS thất bại."
+          });
+          loadBookingDashboard();
+          window.history.replaceState({}, document.title, window.location.pathname);
+        });
     } else {
       loadBookingDashboard();
     }
@@ -348,15 +387,30 @@ export default function MyBookings() {
   };
 
   const handleConfirmCancel = async () => {
+    const bookingId = selectedBooking?.id;
     try {
-      const response = await api.put(`/bookings/${selectedBooking.id}/cancel`);
+      const response = await api.put(`/bookings/${bookingId}/cancel`);
       if (response.data && response.data.success) {
-        await loadBookingDashboard();
+        // Optimistic update: immediately remove from list and close modal
+        setBookings(prev => prev.map(b =>
+          b.id === bookingId ? { ...b, status: "cancelled" } : b
+        ));
         closeModal();
+        showNotice(
+          language === "en" ? "Booking Cancelled" : "Đã hủy đặt chỗ",
+          language === "en" ? "Your booking has been cancelled successfully." : "Đã hủy đơn đặt chỗ thành công.",
+          "success"
+        );
+        // Refresh data in background (no await)
+        loadBookingDashboard();
       }
     } catch (error) {
       console.error("Lỗi huỷ đặt chỗ:", error);
-      alert(error.response?.data?.message || (language === "en" ? "Failed to cancel booking." : "Hủy đặt chỗ thất bại."));
+      showNotice(
+        language === "en" ? "Cancellation Error" : "Lỗi hủy đặt chỗ",
+        error.response?.data?.message || (language === "en" ? "Failed to cancel booking." : "Hủy đặt chỗ thất bại."),
+        "error"
+      );
     }
   };
 
@@ -368,10 +422,19 @@ export default function MyBookings() {
         await loadBookingDashboard();
         setSelectedBooking(prev => prev ? { ...prev, isLocked: false } : null);
         setActiveModal("details");
+        showNotice(
+          language === "en" ? "Unlocked" : "Đã mở khóa",
+          language === "en" ? "Vehicle unlocked successfully." : "Đã mở khóa bảo vệ xe thành công.",
+          "success"
+        );
       }
     } catch (error) {
       console.error("Lỗi mở khóa xe:", error);
-      alert(error.response?.data?.message || (language === "en" ? "Failed to unlock vehicle." : "Mở khóa xe thất bại."));
+      showNotice(
+        language === "en" ? "Unlock Error" : "Lỗi mở khóa",
+        error.response?.data?.message || (language === "en" ? "Failed to unlock vehicle." : "Mở khóa xe thất bại."),
+        "error"
+      );
     }
   };
 
@@ -382,10 +445,19 @@ export default function MyBookings() {
         await loadBookingDashboard();
         setSelectedBooking(prev => prev ? { ...prev, isLocked: true } : null);
         setActiveModal("details");
+        showNotice(
+          language === "en" ? "Locked" : "Đã khóa bảo vệ",
+          language === "en" ? "Vehicle locked successfully." : "Đã kích hoạt khóa bảo vệ xe.",
+          "success"
+        );
       }
     } catch (error) {
       console.error("Lỗi khóa xe:", error);
-      alert(error.response?.data?.message || (language === "en" ? "Failed to lock vehicle." : "Khóa bảo vệ xe thất bại."));
+      showNotice(
+        language === "en" ? "Lock Error" : "Lỗi khóa xe",
+        error.response?.data?.message || (language === "en" ? "Failed to lock vehicle." : "Khóa bảo vệ xe thất bại."),
+        "error"
+      );
     }
   };
 
@@ -401,15 +473,27 @@ export default function MyBookings() {
 
       const res = await api.post("/payments/confirm-mock", payload);
       if (res.data && res.data.success) {
-        alert(language === "en" ? "Mock payment succeeded!" : "Thanh toán giả lập thành công!");
         closeModal();
+        showNotice(
+          language === "en" ? "Payment Successful" : "Thanh toán thành công",
+          language === "en" ? "Mock payment succeeded! Your booking is confirmed." : "Thanh toán giả lập thành công! Lịch đặt chỗ của bạn đã được xác nhận.",
+          "success"
+        );
         await loadBookingDashboard();
       } else {
-        alert(language === "en" ? "Mock payment failed." : "Thanh toán giả lập thất bại.");
+        showNotice(
+          language === "en" ? "Payment Failed" : "Thanh toán thất bại",
+          language === "en" ? "Mock payment failed." : "Thanh toán giả lập thất bại.",
+          "error"
+        );
       }
     } catch (err) {
       console.error("Mock payment error:", err);
-      alert(err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại."));
+      showNotice(
+        language === "en" ? "Payment Error" : "Lỗi thanh toán",
+        err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại."),
+        "error"
+      );
     } finally {
       setProcessingPayment(false);
     }
@@ -431,12 +515,20 @@ export default function MyBookings() {
       if (res.data && res.data.success && res.data.data?.payment_url) {
         window.location.href = res.data.data.payment_url;
       } else {
-        alert(language === "en" ? "Failed to create PayOS payment link." : "Khởi tạo thanh toán PayOS thất bại.");
+        showNotice(
+          language === "en" ? "Payment Error" : "Lỗi thanh toán",
+          language === "en" ? "Failed to create PayOS payment link." : "Khởi tạo thanh toán PayOS thất bại.",
+          "error"
+        );
         setProcessingPayment(false);
       }
     } catch (err) {
       console.error("PayOS payment error:", err);
-      alert(err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại."));
+      showNotice(
+        language === "en" ? "Payment Error" : "Lỗi thanh toán",
+        err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại."),
+        "error"
+      );
       setProcessingPayment(false);
     }
   };
@@ -619,7 +711,15 @@ export default function MyBookings() {
                 else if (booking.status === "cancelled") { statusText = language === "en" ? "Cancelled" : "Đã hủy"; statusCls = "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400"; }
                 else { statusText = language === "en" ? "Unpaid" : "Chưa thanh toán"; statusCls = "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"; }
 
-                const displayPrice = booking.status === "cancelled" ? 0 : booking.depositPaid;
+                // Booking chưa thanh toán (PENDING) thì depositPaid luôn = 0, nên hiển thị
+                // số tiền cần thanh toán (totalPrice) để user biết cần trả bao nhiêu.
+                const isUnpaidPending = booking.status !== "confirmed" && booking.status !== "active" &&
+                  booking.status !== "completed" && booking.status !== "cancelled";
+                const displayPrice = booking.status === "cancelled"
+                  ? 0
+                  : isUnpaidPending
+                    ? booking.totalPrice
+                    : booking.depositPaid;
 
                 return (
                   <div
@@ -1787,6 +1887,8 @@ export default function MyBookings() {
           </div>
         </div>
       )}
+
+
     </div>
   );
 }

@@ -688,7 +688,7 @@ export default function CheckOutPage() {
                             }
                         }}
                         onClick={() => fileInputRef.current?.click()}
-                        className={`relative border-2 border-dashed flex-1 min-h-[220px] sm:min-h-[300px] lg:min-h-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 rounded-md ${isDragOver
+                        className={`relative border-2 border-dashed flex-1 min-h-[220px] max-h-[360px] sm:min-h-[280px] lg:min-h-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 rounded-md ${isDragOver
                             ? "border-blue-500 bg-blue-50/20 dark:bg-blue-950/20"
                             : isLoading
                                 ? "border-blue-500 bg-blue-50/5 dark:bg-blue-950/5 shadow-md shadow-blue-500/10"
@@ -712,11 +712,11 @@ export default function CheckOutPage() {
                         />
 
                         {capturedImage ? (
-                            <div className="relative w-full h-full group flex items-center justify-center bg-slate-950">
+                            <div className="relative w-full h-full max-h-[350px] group flex items-center justify-center bg-slate-950 overflow-hidden">
                                 <img
                                     src={capturedImage}
                                     alt="Uploaded Vehicle"
-                                    className="max-w-full max-h-full object-contain"
+                                    className="max-w-full max-h-[340px] w-auto h-auto object-contain"
                                 />
                                 <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                     <button
@@ -890,13 +890,13 @@ export default function CheckOutPage() {
                                                     setLightboxImage(getFullImageUrl(session.image_url_in));
                                                 }
                                             }}
-                                            className="bg-slate-100 dark:bg-slate-950 flex items-center justify-center border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm dark:shadow-md relative group cursor-zoom-in rounded-md transition-colors duration-200 h-auto"
+                                            className="bg-slate-100 dark:bg-slate-950 flex items-center justify-center max-h-[160px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm dark:shadow-md relative group cursor-zoom-in rounded-md transition-colors duration-200"
                                             title="Click to zoom check-in snapshot"
                                         >
                                             <img
                                                 src={session.image_url_in ? getFullImageUrl(session.image_url_in) : "https://placehold.co/600x400/0f172a/64748b?text=No+Checkin+Image"}
                                                 alt="Check-in snapshot"
-                                                className="w-full h-auto max-h-[130px] object-contain transition-transform duration-300 group-hover:scale-105 opacity-90 dark:opacity-80"
+                                                className="w-full h-auto max-h-[150px] max-w-full object-contain transition-transform duration-300 group-hover:scale-105 opacity-90 dark:opacity-80"
                                                 style={{ imageRendering: 'pixelated' }}
                                             />
                                             <div className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{language === "vi" ? "Ảnh check-in" : "Check-in Image"}</div>
@@ -913,13 +913,13 @@ export default function CheckOutPage() {
                                                     setLightboxImage(imgUrl);
                                                 }
                                             }}
-                                            className="bg-slate-100 dark:bg-slate-950 flex items-center justify-center border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm dark:shadow-md relative group cursor-zoom-in rounded-md transition-colors duration-200 h-auto"
+                                            className="bg-slate-100 dark:bg-slate-950 flex items-center justify-center max-h-[160px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm dark:shadow-md relative group cursor-zoom-in rounded-md transition-colors duration-200"
                                             title="Click to zoom check-out snapshot"
                                         >
                                             <img
                                                 src={croppedImage || capturedImage || "https://placehold.co/600x400/0f172a/64748b?text=Snapshot+Outbound"}
                                                 alt="Captured Gate Target Area"
-                                                className="w-full h-auto max-h-[130px] object-contain transition-transform duration-300 group-hover:scale-105 opacity-90 dark:opacity-80"
+                                                className="w-full h-auto max-h-[150px] max-w-full object-contain transition-transform duration-300 group-hover:scale-105 opacity-90 dark:opacity-80"
                                                 style={{ imageRendering: 'pixelated' }}
                                             />
                                             <div className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{language === "vi" ? "Ảnh check-out" : "Check-out Image"}</div>

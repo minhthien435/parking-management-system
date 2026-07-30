@@ -16,11 +16,11 @@ import {
 } from "lucide-react";
 import api from "../../utils/api";
 import { useLanguage } from "../../hooks/useLanguage";
+import { toast } from "sonner";
 
 export default function AdminDashboard() {
   const { language } = useLanguage();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [totalUsers, setTotalUsers] = useState(0);
   const [systemHealth, setSystemHealth] = useState(null);
   const [latestLogs, setLatestLogs] = useState([]);
@@ -50,7 +50,6 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      setError("");
 
       // 1. Fetch system health
       try {
@@ -71,7 +70,7 @@ export default function AdminDashboard() {
           errorCount24H: 0,
           warningCount24H: 0
         });
-        setError(
+        toast.error(
           language === "en"
             ? "Cannot connect to server. Please verify system environment settings."
             : "Không thể kết nối đến máy chủ. Vui lòng xác thực lại cấu hình hệ thống."
@@ -90,7 +89,7 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error("[Admin Dashboard API Error]:", err);
-      setError(
+      toast.error(
         language === "en"
           ? "Cannot connect to server. Please try again."
           : "Không thể kết nối đến máy chủ. Vui lòng thử lại."
@@ -132,13 +131,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ERROR ALERT DISPLAY */}
-      {error && (
-        <div className="p-3.5 bg-red-50 dark:bg-red-955/20 border border-red-200 dark:border-red-900/40 text-red-655 dark:text-red-455 text-xs font-semibold rounded-xl flex items-center gap-2">
-          <AlertCircle size={16} className="shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
 
       {loading && !systemHealth ? (
         <div className="h-64 flex flex-col justify-center items-center gap-3">
