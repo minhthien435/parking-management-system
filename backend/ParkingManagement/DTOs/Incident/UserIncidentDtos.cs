@@ -33,6 +33,7 @@ namespace ParkingManagement.DTOs.Incident
         public string? CustomerPhone { get; set; }
         public string? CustomerEmail { get; set; }
         public string? ResolvedBy { get; set; }
+        public string? ResolvedByName { get; set; }
         public DateTime? ResolvedAt { get; set; }
     }
 }

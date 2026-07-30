@@ -20,11 +20,13 @@ import {
   CalendarDays,
   QrCode,
   Phone,
+  XCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useAuth } from "../../hooks/useAuth";
+import { toast } from "sonner";
 
 const fmtVND = (val) => (val != null ? val.toLocaleString("vi-VN") : "0");
 
@@ -33,6 +35,13 @@ export default function BookSlot() {
   const { language } = useLanguage();
   const { user, updateUser, updateProfileApi, fetchProfile } = useAuth();
   const userId = user?.user_id || user?.userId || "";
+
+
+  const showNotice = (title, message, type = "success") => {
+    if (type === "success") toast.success(title, { description: message });
+    else if (type === "error") toast.error(title, { description: message });
+    else toast(title, { description: message });
+  };
 
   // Vehicle selection state: null, 'car', or 'motorbike'
   const [vehicleType, setVehicleType] = useState(null);
@@ -108,9 +117,12 @@ export default function BookSlot() {
     setAgreedToTerms(false);
     setSubmitAttempted(false);
     setConflictType(null);
-    alert(language === "en"
-      ? "Payment time exceeded (5 minutes). Booking has been cancelled."
-      : "Đã quá thời gian thanh toán (5 phút). Lượt đặt chỗ của bạn đã bị hủy."
+    showNotice(
+      language === "en" ? "Payment Timeout" : "Hết thời gian thanh toán",
+      language === "en"
+        ? "Payment time exceeded (5 minutes). Booking has been cancelled."
+        : "Đã quá thời gian thanh toán (5 phút). Lượt đặt chỗ của bạn đã bị hủy.",
+      "error"
     );
   };
 
@@ -646,28 +658,22 @@ export default function BookSlot() {
       const res = await api.post("/payments/confirm-mock", payload);
       if (res.data && res.data.success) {
         isPaidRef.current = true;
-        setShowSuccessDelay(true);
-        setTimeout(async () => {
-          try {
-            const res2 = await api.get(`/bookings/${createdBooking.booking_id}`);
-            if (res2.data && res2.data.success) {
-              setCreatedBooking(res2.data.data);
-            }
-          } catch (err) {
-            console.error("Lỗi tải lại đơn đặt chỗ:", err);
-          } finally {
-            setCurrentStep(skipRegulations ? 3 : 4);
-            setProcessingPayment(false);
-            setShowSuccessDelay(false);
-          }
-        }, 1500);
+        navigate("/user/bookings");
       } else {
-        alert(language === "en" ? "Mock payment failed." : "Thanh toán giả lập thất bại.");
+        showNotice(
+          language === "en" ? "Payment Error" : "Lỗi thanh toán",
+          language === "en" ? "Mock payment failed." : "Thanh toán giả lập thất bại.",
+          "error"
+        );
         setProcessingPayment(false);
       }
     } catch (err) {
       console.error("Mock payment error:", err);
-      alert(err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại."));
+      showNotice(
+        language === "en" ? "Payment Error" : "Lỗi thanh toán",
+        err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại."),
+        "error"
+      );
       setProcessingPayment(false);
     }
   };
@@ -688,12 +694,20 @@ export default function BookSlot() {
       if (res.data && res.data.success && res.data.data?.payment_url) {
         window.location.href = res.data.data.payment_url;
       } else {
-        alert(language === "en" ? "Failed to create PayOS payment link." : "Khởi tạo thanh toán PayOS thất bại.");
+        showNotice(
+          language === "en" ? "Payment Error" : "Lỗi thanh toán",
+          language === "en" ? "Failed to create PayOS payment link." : "Khởi tạo thanh toán PayOS thất bại.",
+          "error"
+        );
         setProcessingPayment(false);
       }
     } catch (err) {
       console.error("PayOS payment error:", err);
-      alert(err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại."));
+      showNotice(
+        language === "en" ? "Payment Error" : "Lỗi thanh toán",
+        err.response?.data?.message || (language === "en" ? "Payment failed. Please try again." : "Thanh toán thất bại. Vui lòng thử lại."),
+        "error"
+      );
       setProcessingPayment(false);
     }
   };
@@ -1720,6 +1734,8 @@ export default function BookSlot() {
           </div>
         </div>
       )}
+
+
     </div>
   );
 }

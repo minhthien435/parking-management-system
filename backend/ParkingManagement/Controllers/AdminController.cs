@@ -387,6 +387,29 @@ namespace ParkingManagement.Controllers
 
                 _context.UserBanLogs.Add(banLog);
             }
+            else if (user.Status == "BANNED" && newStatus != "BANNED")
+            {
+                var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                              ?? User.FindFirst("sub")?.Value
+                              ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+                if (string.IsNullOrEmpty(adminId))
+                {
+                    var systemAdmin = await _context.Users.Where(u => u.RoleId == 1).Select(u => u.UserId).FirstOrDefaultAsync();
+                    adminId = systemAdmin ?? "usr_260601085134364";
+                }
+
+                var unbanLog = new UserBanLog
+                {
+                    TargetUserId = userId,
+                    ActionBy = adminId,
+                    Action = "UNBANNED",
+                    Reason = string.IsNullOrWhiteSpace(dto.Reason) ? "Account status unbanned by administrator." : dto.Reason,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.UserBanLogs.Add(unbanLog);
+            }
 
             user.Status = newStatus;
             await _context.SaveChangesAsync();

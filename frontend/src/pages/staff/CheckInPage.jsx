@@ -526,7 +526,7 @@ export default function CheckInPage() {
                             }
                         }}
                         onClick={() => fileInputRef.current?.click()}
-                        className={`relative border-2 border-dashed flex-1 min-h-[220px] sm:min-h-[300px] lg:min-h-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 rounded-md ${isDragOver
+                        className={`relative border-2 border-dashed flex-1 min-h-[220px] max-h-[360px] sm:min-h-[280px] lg:min-h-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 rounded-md ${isDragOver
                             ? "border-blue-500 bg-blue-50/20 dark:bg-blue-950/20"
                             : isLoading
                                 ? "border-blue-500 bg-blue-50/5 dark:bg-blue-950/5 shadow-md shadow-blue-500/10"
@@ -550,11 +550,11 @@ export default function CheckInPage() {
                         />
 
                         {capturedImage ? (
-                            <div className="relative w-full h-full group flex items-center justify-center bg-slate-950">
+                            <div className="relative w-full h-full max-h-[350px] group flex items-center justify-center bg-slate-950 overflow-hidden">
                                 <img
                                     src={capturedImage}
                                     alt="Uploaded Vehicle"
-                                    className="max-w-full max-h-full object-contain"
+                                    className="max-w-full max-h-[340px] w-auto h-auto object-contain"
                                 />
                                 <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                     <button
@@ -696,12 +696,12 @@ export default function CheckInPage() {
                                     {/* ẢNH SNAPSHOT INBOUND */}
                                     <div
                                         onClick={() => setIsLightboxOpen(true)}
-                                        className="bg-slate-100 dark:bg-slate-950 h-[130px] xl:h-[160px] 2xl:h-[200px] shrink-0 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm relative group cursor-zoom-in rounded-md"
+                                        className="bg-slate-100 dark:bg-slate-950 h-[130px] xl:h-[160px] 2xl:h-[180px] max-h-[200px] shrink-0 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm relative group cursor-zoom-in rounded-md flex items-center justify-center"
                                     >
                                         <img
                                             src={croppedImage || capturedImage || "https://placehold.co/600x400/0f172a/64748b?text=Snapshot+Inbound"}
                                             alt="Captured Gate Target Area"
-                                            className="w-full h-auto max-h-[130px] object-contain transition-transform duration-300 group-hover:scale-105 opacity-90 dark:opacity-80"
+                                            className="w-full h-auto max-h-[180px] max-w-full object-contain transition-transform duration-300 group-hover:scale-105 opacity-90 dark:opacity-80"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent pointer-events-none" />
                                         <div className="absolute bottom-2 right-2 bg-white/90 dark:bg-slate-900/90 rounded-md p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">

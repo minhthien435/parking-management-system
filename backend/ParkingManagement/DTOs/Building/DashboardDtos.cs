@@ -86,6 +86,9 @@ public class OccupancyReportDto
     [JsonPropertyName("occupied_slots")]
     public int OccupiedSlots { get; set; }
 
+    [JsonPropertyName("maintenance_slots")]
+    public int MaintenanceSlots { get; set; }
+
     [JsonPropertyName("occupancy_rate_percent")]
     public double OccupancyRatePercent { get; set; }
 }
@@ -116,4 +119,34 @@ public class VehicleTypeBreakdownDto
 
     [JsonPropertyName("revenue")]
     public decimal Revenue { get; set; }
+
+    [JsonPropertyName("base_price")]
+    public decimal BasePrice { get; set; }
+
+    [JsonPropertyName("base_hours")]
+    public int BaseHours { get; set; }
+
+    [JsonPropertyName("subsequent_rate")]
+    public decimal SubsequentRate { get; set; }
+
+    [JsonPropertyName("subsequent_hours")]
+    public int SubsequentHours { get; set; }
+
+    [JsonPropertyName("daily_max_price")]
+    public decimal DailyMaxPrice { get; set; }
+
+    [JsonPropertyName("handling_fee")]
+    public decimal HandlingFee { get; set; }
+
+    [JsonPropertyName("walk_in_check_ins")]
+    public int WalkInCheckIns { get; set; }
+
+    [JsonPropertyName("walk_in_revenue")]
+    public decimal WalkInRevenue { get; set; }
+
+    [JsonPropertyName("booking_check_ins")]
+    public int BookingCheckIns { get; set; }
+
+    [JsonPropertyName("booking_revenue")]
+    public decimal BookingRevenue { get; set; }
 }

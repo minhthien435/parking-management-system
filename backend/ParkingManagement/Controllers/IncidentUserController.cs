@@ -49,6 +49,10 @@ namespace ParkingManagement.Controllers
                     CustomerPhone = i.CustomerPhone,
                     CustomerEmail = i.CustomerEmail,
                     ResolvedBy = i.ResolvedBy,
+                    ResolvedByName = string.IsNullOrEmpty(i.ResolvedBy) ? null
+                        : _context.Users.Where(u => u.UserId == i.ResolvedBy)
+                            .Select(u => !string.IsNullOrEmpty(u.FullName) ? u.FullName : (!string.IsNullOrEmpty(u.Username) ? u.Username : u.Email))
+                            .FirstOrDefault(),
                     ResolvedAt = i.ResolvedAt
                 })
                 .ToListAsync();

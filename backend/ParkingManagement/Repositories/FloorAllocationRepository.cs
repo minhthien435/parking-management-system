@@ -14,6 +14,7 @@ public interface IFloorAllocationRepository
     Task UpdateAsync(FloorZone zone);
     Task<FloorZone> CreateAsync(FloorZone zone);
     Task<bool> FloorNumberExistsAsync(string buildingId, int floorNumber, string zoneName);
+    Task<FloorZone?> GetConflictingZoneAsync(string buildingId, string zoneName, int? excludeZoneId = null);
     Task DeleteZoneAsync(FloorZone zoneId);
     Task SyncZoneSlotsAsync(int zoneId, int targetCapacity);
 }
@@ -43,7 +44,6 @@ public class FloorAllocationRepository : IFloorAllocationRepository
     public Task<VehicleType?> GetVehicleTypeAsync(int vehicleTypeId) =>
         _db.VehicleTypes.FirstOrDefaultAsync(v => v.VehicleTypeId == vehicleTypeId);
 
-    // Đếm xe đang ACTIVE trong zone này (dựa trên cột ZoneId trực tiếp của ParkingSession trong cơ chế mới)
     public Task<int> CountActiveVehiclesAsync(int zoneId) =>
         _db.ParkingSessions
            .CountAsync(s => s.ZoneId == zoneId &&
@@ -98,8 +98,40 @@ public class FloorAllocationRepository : IFloorAllocationRepository
         }
         return zone;
     }
-    public Task<bool> FloorNumberExistsAsync(string buildingId, int floorNumber, string zoneName) =>
-        _db.FloorZones.AnyAsync(z => z.BuildingId == buildingId && z.FloorNumber == floorNumber && z.ZoneName == zoneName);
+
+    public static string ExtractBaseZoneName(string? zoneName)
+    {
+        if (string.IsNullOrWhiteSpace(zoneName)) return string.Empty;
+        var name = zoneName.Trim();
+        int dashIndex = name.IndexOf(" - ", StringComparison.Ordinal);
+        if (dashIndex > 0)
+        {
+            name = name.Substring(0, dashIndex).Trim();
+        }
+        string core = name.Replace("Zone", "", StringComparison.OrdinalIgnoreCase).Trim();
+        return string.IsNullOrEmpty(core) ? name.ToUpper() : $"ZONE {core.ToUpper()}";
+    }
+
+    public async Task<FloorZone?> GetConflictingZoneAsync(string buildingId, string zoneName, int? excludeZoneId = null)
+    {
+        string targetBase = ExtractBaseZoneName(zoneName);
+        if (string.IsNullOrEmpty(targetBase)) return null;
+
+        var buildingZones = await _db.FloorZones
+            .Include(z => z.VehicleType)
+            .Where(z => z.BuildingId == buildingId)
+            .ToListAsync();
+
+        return buildingZones.FirstOrDefault(z =>
+            (!excludeZoneId.HasValue || z.ZoneId != excludeZoneId.Value) &&
+            ExtractBaseZoneName(z.ZoneName) == targetBase);
+    }
+
+    public async Task<bool> FloorNumberExistsAsync(string buildingId, int floorNumber, string zoneName)
+    {
+        var conflict = await GetConflictingZoneAsync(buildingId, zoneName);
+        return conflict != null;
+    }
 
     public async Task DeleteZoneAsync(FloorZone zoneId)
     {

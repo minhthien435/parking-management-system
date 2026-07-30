@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ParkingManagement.Data;
 using ParkingManagement.DTOs.Booking;
 using ParkingManagement.Models;
@@ -45,13 +46,15 @@ public class BookingService : IBookingService
     private readonly IParkingRepository _parkingRepo;
     private readonly PayOS.PayOSClient _payOS;
     private readonly IEmailService _emailService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public BookingService(AppDbContext context, IParkingRepository parkingRepo, PayOS.PayOSClient payOS, IEmailService emailService)
+    public BookingService(AppDbContext context, IParkingRepository parkingRepo, PayOS.PayOSClient payOS, IEmailService emailService, IServiceScopeFactory scopeFactory)
     {
         _context = context;
         _parkingRepo = parkingRepo;
         _payOS = payOS;
         _emailService = emailService;
+        _scopeFactory = scopeFactory;
     }
 
     // ─── GET PRICE ESTIMATE ────────────────────────────────────────────────────
@@ -313,6 +316,9 @@ public class BookingService : IBookingService
         // If the booking is PENDING, we delete it from DB and increment capacity back.
         if (booking.Status == "PENDING")
         {
+            var response = await MapToBookingResponseAsync(booking);
+            response.Status = "CANCELLED";
+
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -337,7 +343,7 @@ public class BookingService : IBookingService
 
                 await transaction.CommitAsync();
 
-                return await MapToBookingResponseAsync(booking);
+                return response;
             }
             catch (Exception)
             {
@@ -384,28 +390,38 @@ public class BookingService : IBookingService
 
                 await transaction.CommitAsync();
 
-                // Send email notification upon cancellation
-                try
+                // Gửi email nền, KHÔNG await trên request thread để tránh chặn response.
+                var bookingIdForEmail = booking.BookingId;
+                var userIdForEmail = booking.VehicleUserId;
+                var licensePlateForEmail = booking.LicensePlate;
+                _ = Task.Run(async () =>
                 {
-                    var usr = await _context.Users.FirstOrDefaultAsync(u => u.UserId == booking.VehicleUserId);
-                    if (usr != null && !string.IsNullOrWhiteSpace(usr.Email))
+                    try
                     {
-                        decimal refund = await _context.Payments
-                            .Where(p => p.BookingId == booking.BookingId && p.Status == "SUCCESS")
-                            .SumAsync(p => (decimal?)p.AmountPaid) ?? 0m;
+                        using var scope = _scopeFactory.CreateScope();
+                        var scopedContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
-                        string userName = usr.FullName ?? usr.Username ?? "Quý khách";
-                        string htmlBody = EmailTemplateHelper.BuildBookingCancelledEmailHtml(
-                            userName, booking.BookingId, booking.LicensePlate, refund);
+                        var usr = await scopedContext.Users.FirstOrDefaultAsync(u => u.UserId == userIdForEmail);
+                        if (usr != null && !string.IsNullOrWhiteSpace(usr.Email))
+                        {
+                            decimal refund = await scopedContext.Payments
+                                .Where(p => p.BookingId == bookingIdForEmail && p.Status == "SUCCESS")
+                                .SumAsync(p => (decimal?)p.AmountPaid) ?? 0m;
 
-                        string subject = $"[eParking] Thông báo hủy đặt chỗ thành công - Đơn #{booking.BookingId}";
-                        await _emailService.SendEmailAsync(usr.Email, subject, htmlBody);
+                            string userName = usr.FullName ?? usr.Username ?? "Quý khách";
+                            string htmlBody = EmailTemplateHelper.BuildBookingCancelledEmailHtml(
+                                userName, bookingIdForEmail, licensePlateForEmail, refund);
+
+                            string subject = $"[eParking] Thông báo hủy đặt chỗ thành công - Đơn #{bookingIdForEmail}";
+                            await scopedEmailService.SendEmailAsync(usr.Email, subject, htmlBody);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[CancelEmail Error] {ex.Message}");
-                }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[CancelEmail Error] {ex.Message}");
+                    }
+                });
 
                 return await MapToBookingResponseAsync(booking);
             }

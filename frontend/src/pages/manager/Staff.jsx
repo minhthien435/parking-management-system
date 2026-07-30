@@ -311,14 +311,14 @@ export default function ManagerStaff() {
                 placeholder={language === 'en' ? 'Search by Name, Username, Email, Phone...' : 'Tìm kiếm theo Tên, Tên tài khoản, Email, Số điện thoại...'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="input-field pl-10"
+                className="input-field text-sm pl-10"
               />
             </div>
             <div className="flex w-full md:w-auto gap-4 items-center self-end md:self-auto">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="input-field w-full md:w-48"
+                className="input-field w-full text-sm font-semibold md:w-48"
               >
                 <option value="">{language === 'en' ? 'All Statuses' : 'Tất cả trạng thái'}</option>
                 <option value="ACTIVE">{language === 'en' ? 'Active' : 'Hoạt động'}</option>

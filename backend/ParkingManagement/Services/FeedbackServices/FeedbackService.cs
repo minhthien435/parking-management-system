@@ -74,11 +74,11 @@ namespace ParkingManagement.Services.FeedbackServices
                     ResolvedBy = f.ResolvedBy,
                     ResolvedByName = string.IsNullOrEmpty(f.ResolvedBy) ? null
                         : _context.Users.Where(u => u.UserId == f.ResolvedBy)
-                            .Select(u => (u.FullName != null && u.FullName != "")
+                            .Select(u => !string.IsNullOrEmpty(u.FullName)
                                 ? u.FullName
-                                : (u.Email != null && u.Email.Contains("@")
-                                    ? u.Email.Substring(0, u.Email.IndexOf("@"))
-                                    : u.Email))
+                                : (!string.IsNullOrEmpty(u.Username)
+                                    ? u.Username
+                                    : (u.Email != null && u.Email.Contains("@") ? u.Email.Substring(0, u.Email.IndexOf("@")) : u.Email)))
                             .FirstOrDefault(),
                     ResponseNote = f.ResponseNote,
                     CustomerPhone = f.CustomerPhone,
@@ -133,11 +133,11 @@ namespace ParkingManagement.Services.FeedbackServices
                     ResolvedBy = f.ResolvedBy,
                     ResolvedByName = string.IsNullOrEmpty(f.ResolvedBy) ? null
                         : _context.Users.Where(u => u.UserId == f.ResolvedBy)
-                            .Select(u => (u.FullName != null && u.FullName != "")
+                            .Select(u => !string.IsNullOrEmpty(u.FullName)
                                 ? u.FullName
-                                : (u.Email != null && u.Email.Contains("@")
-                                    ? u.Email.Substring(0, u.Email.IndexOf("@"))
-                                    : u.Email))
+                                : (!string.IsNullOrEmpty(u.Username)
+                                    ? u.Username
+                                    : (u.Email != null && u.Email.Contains("@") ? u.Email.Substring(0, u.Email.IndexOf("@")) : u.Email)))
                             .FirstOrDefault(),
                     ResponseNote = f.ResponseNote,
                     CustomerEmail = f.CustomerEmail,

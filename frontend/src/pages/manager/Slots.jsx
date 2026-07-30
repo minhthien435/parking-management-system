@@ -60,6 +60,8 @@ const t = {
     warningLowCapacitySingle: "Cảnh báo: Bảo trì ô này sẽ khiến phân khu chỉ còn {count} ô trống khả dụng.",
     warningLowCapacityBulk: "Cảnh báo: Bảo trì các ô này sẽ khiến phân khu chỉ còn {count} ô trống khả dụng.",
     createZone: "Thêm phân khu",
+    createFloorAndZone: "Tạo tầng & Zone",
+    addZoneForFloor: "Tạo thêm Zone cho Tầng {floor}",
     editZone: "Sửa phân khu",
     deleteZone: "Xóa phân khu",
     zoneName: "Tên phân khu",
@@ -136,6 +138,8 @@ const t = {
     warningLowCapacitySingle: "Warning: Putting this slot under maintenance will leave only {count} available slot(s) in this zone.",
     warningLowCapacityBulk: "Warning: Putting these slots under maintenance will leave only {count} available slot(s) in this zone.",
     createZone: "Create Floor Zone",
+    createFloorAndZone: "Create Floor & Zone",
+    addZoneForFloor: "Add Zone to Floor {floor}",
     editZone: "Edit Floor Zone",
     deleteZone: "Delete Floor Zone",
     zoneName: "Zone Name",
@@ -485,17 +489,31 @@ export default function ManagerSlots() {
   });
   const [isNewFloor, setIsNewFloor] = useState(false);
   const [customFloorNumber, setCustomFloorNumber] = useState("");
+  const [isFloorLocked, setIsFloorLocked] = useState(false);
 
-  const openCreateModal = () => {
-    const firstFloor = floorsData[0]?.floorNumber?.toString() || "1";
-    setCreateForm({
-      zoneName: "",
-      floorNumber: firstFloor,
-      capacity: "10",
-      vehicleTypeId: "1"
-    });
-    setIsNewFloor(false);
-    setCustomFloorNumber("");
+  const openCreateModal = (targetFloor = null) => {
+    if (targetFloor !== null && targetFloor !== undefined) {
+      setCreateForm({
+        zoneName: "",
+        floorNumber: targetFloor.toString(),
+        capacity: "10",
+        vehicleTypeId: "1"
+      });
+      setIsNewFloor(false);
+      setCustomFloorNumber("");
+      setIsFloorLocked(true);
+    } else {
+      const firstFloor = floorsData[0]?.floorNumber?.toString() || "1";
+      setCreateForm({
+        zoneName: "",
+        floorNumber: firstFloor,
+        capacity: "10",
+        vehicleTypeId: "1"
+      });
+      setIsNewFloor(false);
+      setCustomFloorNumber("");
+      setIsFloorLocked(false);
+    }
     setIsCreateOpen(true);
   };
 
@@ -851,13 +869,9 @@ export default function ManagerSlots() {
 
     setFormSubmitting(true);
     try {
-      const fullZoneName = `Zone ${createForm.zoneName.trim()} - ${createForm.vehicleTypeId === "1"
-        ? (language === "en" ? "Motorbike" : "Xe máy")
-        : (language === "en" ? "Car" : "Ô tô")
-        }`;
-
+      const rawZoneName = createForm.zoneName.trim();
       const response = await api.post("/parking/floors", {
-        zone_name: fullZoneName,
+        zone_name: rawZoneName,
         floor_number: finalFloorNumber,
         capacity: parseInt(createForm.capacity),
         vehicle_type_id: parseInt(createForm.vehicleTypeId)
@@ -1128,11 +1142,11 @@ export default function ManagerSlots() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-200 dark:border-slate-800 gap-4">
 
             <button
-              onClick={openCreateModal}
+              onClick={() => openCreateModal(null)}
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs shadow-sm transition-all cursor-pointer"
             >
               <Plus size={14} />
-              <span>{t[language].createZone}</span>
+              <span>{t[language].createFloorAndZone}</span>
             </button>
           </div>
 
@@ -1174,11 +1188,11 @@ export default function ManagerSlots() {
 
             </div>
             <button
-              onClick={openCreateModal}
+              onClick={() => openCreateModal(selectedFloorForDetails)}
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs shadow-sm transition-all cursor-pointer"
             >
               <Plus size={14} />
-              <span>{t[language].createZone}</span>
+              <span>{t[language].addZoneForFloor.replace("{floor}", selectedFloorForDetails)}</span>
             </button>
           </div>
 
@@ -1631,9 +1645,11 @@ export default function ManagerSlots() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-base font-bold text-slate-905 dark:text-white flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Plus size={16} className="text-blue-500" />
-                {t[language].createZone}
+                {isFloorLocked
+                  ? t[language].addZoneForFloor.replace("{floor}", createForm.floorNumber)
+                  : t[language].createFloorAndZone}
               </h3>
               <button onClick={() => setIsCreateOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X size={18} />
@@ -1643,32 +1659,41 @@ export default function ManagerSlots() {
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t[language].floorLabel}</label>
-                <select
-                  value={isNewFloor ? "new" : createForm.floorNumber}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "new") {
-                      setIsNewFloor(true);
-                      setCreateForm({ ...createForm, floorNumber: "" });
-                    } else {
-                      setIsNewFloor(false);
-                      setCreateForm({ ...createForm, floorNumber: val });
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none cursor-pointer"
-                >
-                  {floorsData.map((f) => (
-                    <option key={f.floorNumber} value={f.floorNumber}>
-                      {language === "en" ? `Floor ${f.floorNumber}` : `Tầng ${f.floorNumber}`}
+                {isFloorLocked ? (
+                  <div className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between cursor-not-allowed">
+                    <span>{language === "en" ? `Floor ${createForm.floorNumber}` : `Tầng ${createForm.floorNumber}`}</span>
+                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-slate-500 font-semibold">
+                      {language === "en" ? "Locked" : "Cố định"}
+                    </span>
+                  </div>
+                ) : (
+                  <select
+                    value={isNewFloor ? "new" : createForm.floorNumber}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "new") {
+                        setIsNewFloor(true);
+                        setCreateForm({ ...createForm, floorNumber: "" });
+                      } else {
+                        setIsNewFloor(false);
+                        setCreateForm({ ...createForm, floorNumber: val });
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none cursor-pointer"
+                  >
+                    {floorsData.map((f) => (
+                      <option key={f.floorNumber} value={f.floorNumber}>
+                        {language === "en" ? `Floor ${f.floorNumber}` : `Tầng ${f.floorNumber}`}
+                      </option>
+                    ))}
+                    <option value="new">
+                      {language === "en" ? "+ Add new floor..." : "+ Thêm tầng mới..."}
                     </option>
-                  ))}
-                  <option value="new">
-                    {language === "en" ? "+ Add new floor..." : "+ Thêm tầng mới..."}
-                  </option>
-                </select>
+                  </select>
+                )}
               </div>
 
-              {isNewFloor && (
+              {!isFloorLocked && isNewFloor && (
                 <div className="animate-in fade-in duration-200">
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
                     {language === "en" ? "New Floor Number" : "Số tầng mới"}
@@ -1738,7 +1763,7 @@ export default function ManagerSlots() {
                   className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2 rounded-lg font-bold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
                   {formSubmitting && <RefreshCw size={13} className="animate-spin" />}
-                  {t[language].createZone}
+                  {isFloorLocked ? (language === "en" ? "Add Zone" : "Tạo thêm Zone") : t[language].createFloorAndZone}
                 </button>
               </div>
             </form>

@@ -47,18 +47,43 @@ public class FloorAllocationService : IFloorAllocationService
 
         return result;
     }
+    private static string GetEnglishVehicleTypeName(int vehicleTypeId, string? fallbackName = null)
+    {
+        if (vehicleTypeId == 1) return "Motorbike";
+        if (vehicleTypeId == 2) return "Car";
+        if (!string.IsNullOrWhiteSpace(fallbackName))
+        {
+            if (fallbackName.Contains("máy", StringComparison.OrdinalIgnoreCase)) return "Motorbike";
+            if (fallbackName.Contains("hơi", StringComparison.OrdinalIgnoreCase) || fallbackName.Contains("ô tô", StringComparison.OrdinalIgnoreCase)) return "Car";
+            return fallbackName;
+        }
+        return "Motorbike";
+    }
+
     // ── CREATE FLOOR 
     public async Task<FloorZoneResponse> CreateZoneAsync(string buildingId, CreateFloorZoneRequest request)
     {
         var vehicleType = await _repo.GetVehicleTypeAsync(request.VehicleTypeId)
             ?? throw new KeyNotFoundException($"Vehicle type {request.VehicleTypeId} not found");
 
-        if (await _repo.FloorNumberExistsAsync(buildingId, request.FloorNumber, request.ZoneName))
-            throw new InvalidOperationException($"Floor {request.FloorNumber} with zone name '{request.ZoneName}' already exists in this building");
+        var conflictingZone = await _repo.GetConflictingZoneAsync(buildingId, request.ZoneName);
+        if (conflictingZone != null)
+        {
+            string baseZoneName = FloorAllocationRepository.ExtractBaseZoneName(request.ZoneName);
+            string existingTypeName = conflictingZone.VehicleType?.VehicleTypeName ?? "loại xe khác";
+            throw new InvalidOperationException($"Phân khu '{baseZoneName}' đã tồn tại ở Tầng {conflictingZone.FloorNumber} (loại xe: '{existingTypeName}'). Tên phân khu phải là duy nhất trong toàn bộ tòa nhà.");
+        }
+
+        string rawBase = FloorAllocationRepository.ExtractBaseZoneName(request.ZoneName);
+        string cleanLetter = rawBase.Replace("ZONE", "", StringComparison.OrdinalIgnoreCase).Trim();
+        string baseFormatted = string.IsNullOrEmpty(cleanLetter) ? "Zone A" : $"Zone {cleanLetter}";
+
+        string englishVehicleTypeName = GetEnglishVehicleTypeName(request.VehicleTypeId, vehicleType.VehicleTypeName);
+        string finalZoneName = $"{baseFormatted} - {englishVehicleTypeName}";
 
         var zone = new FloorZone
         {
-            ZoneName = request.ZoneName,
+            ZoneName = finalZoneName,
             FloorNumber = request.FloorNumber,
             Capacity = request.Capacity,
             AvailableCapacity = request.Capacity,
@@ -100,15 +125,21 @@ public class FloorAllocationService : IFloorAllocationService
             ? $"Warning: {activeVehicles} active vehicle(s) in this zone. Changes take effect from save time."
             : null;
 
-        // Giữ nguyên tên phân khu đầy đủ không tự động cắt bỏ
-
-        if (!string.IsNullOrEmpty(request.ZoneName) && zone.ZoneName != request.ZoneName)
+        string targetZoneName = !string.IsNullOrEmpty(request.ZoneName) ? request.ZoneName : zone.ZoneName;
+        var conflictingZone = await _repo.GetConflictingZoneAsync(zone.BuildingId ?? "B001", targetZoneName, zone.ZoneId);
+        if (conflictingZone != null)
         {
-            if (await _repo.FloorNumberExistsAsync(zone.BuildingId, zone.FloorNumber, request.ZoneName))
-                throw new InvalidOperationException($"Floor {zone.FloorNumber} with zone name '{request.ZoneName}' already exists in this building");
-
-            zone.ZoneName = request.ZoneName;
+            string baseZoneName = FloorAllocationRepository.ExtractBaseZoneName(targetZoneName);
+            string existingTypeName = conflictingZone.VehicleType?.VehicleTypeName ?? "loại xe khác";
+            throw new InvalidOperationException($"Phân khu '{baseZoneName}' đã tồn tại ở Tầng {conflictingZone.FloorNumber} (loại xe: '{existingTypeName}'). Tên phân khu phải là duy nhất trong toàn bộ tòa nhà.");
         }
+
+        string rawBase = FloorAllocationRepository.ExtractBaseZoneName(targetZoneName);
+        string cleanLetter = rawBase.Replace("ZONE", "", StringComparison.OrdinalIgnoreCase).Trim();
+        string baseFormatted = string.IsNullOrEmpty(cleanLetter) ? "Zone A" : $"Zone {cleanLetter}";
+
+        string englishVehicleTypeName = GetEnglishVehicleTypeName(request.VehicleTypeId, vehicleType.VehicleTypeName);
+        zone.ZoneName = $"{baseFormatted} - {englishVehicleTypeName}";
 
         zone.VehicleTypeId = request.VehicleTypeId;
 

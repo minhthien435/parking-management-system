@@ -4,6 +4,118 @@ namespace ParkingManagement.Services.Helpers
 {
     public static class EmailTemplateHelper
     {
+        public static string BuildBookingCreatedEmailHtml(
+            string userName,
+            string bookingId,
+            string licensePlate,
+            string vehicleTypeName,
+            DateTime expectedArrival,
+            DateTime expiredAt,
+            decimal estimatedFee,
+            string paymentMethod)
+        {
+            string arrivalStr = expectedArrival.ToString("dd/MM/yyyy HH:mm");
+            string expiredStr = expiredAt.ToString("dd/MM/yyyy HH:mm");
+            string expiredTimeStr = expiredAt.ToString("HH:mm dd/MM/yyyy");
+            string feeStr = estimatedFee.ToString("N0");
+
+            return @"<!DOCTYPE html>
+<html lang=""vi"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Xác nhận đơn đặt chỗ bãi xe</title>
+</head>
+<body style=""margin: 0; padding: 0; background-color: #f4f6f8; font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b;"">
+    <table role=""presentation"" width=""100%"" cellspacing=""0"" cellpadding=""0"" style=""background-color: #f4f6f8; padding: 30px 0;"">
+        <tr>
+            <td align=""center"">
+                <table role=""presentation"" width=""600"" cellspacing=""0"" cellpadding=""0"" style=""background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08);"">
+                    <!-- Header -->
+                    <tr>
+                        <td style=""background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 30px; text-align: center;"">
+                            <h1 style=""color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px;"">eParking System</h1>
+                            <p style=""color: #ecfdf5; margin: 8px 0 0 0; font-size: 15px;"">Xác nhận Đơn đặt chỗ thành công</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style=""padding: 35px 30px;"">
+                            <p style=""font-size: 16px; margin: 0 0 20px 0; line-height: 1.6;"">
+                                Kính gửi <strong>" + userName + @"</strong>,
+                            </p>
+                            <p style=""font-size: 15px; margin: 0 0 25px 0; line-height: 1.6; color: #475569;"">
+                                Cảm ơn Quý khách đã sử dụng dịch vụ của hệ thống <strong>eParking</strong>. Đơn đặt chỗ gửi xe của Quý khách đã được tạo thành công với các thông tin chi tiết dưới đây:
+                            </p>
+
+                            <!-- Receipt Card -->
+                            <div style=""background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 25px;"">
+                                <table width=""100%"" cellspacing=""0"" cellpadding=""8"" style=""font-size: 14px;"">
+                                    <tr>
+                                        <td style=""color: #64748b; font-weight: 600; width: 40%;"">Mã đơn đặt chỗ:</td>
+                                        <td style=""color: #0f172a; font-weight: 700;"">#" + bookingId + @"</td>
+                                    </tr>
+                                    <tr>
+                                        <td style=""color: #64748b; font-weight: 600;"">Biển số xe:</td>
+                                        <td style=""color: #0f172a; font-weight: 700; font-size: 16px;"">" + licensePlate + @"</td>
+                                    </tr>
+                                    <tr>
+                                        <td style=""color: #64748b; font-weight: 600;"">Loại phương tiện:</td>
+                                        <td style=""color: #0f172a;"">" + vehicleTypeName + @"</td>
+                                    </tr>
+                                    <tr>
+                                        <td style=""color: #64748b; font-weight: 600;"">Thời gian dự kiến vào:</td>
+                                        <td style=""color: #0f172a;"">" + arrivalStr + @"</td>
+                                    </tr>
+                                    <tr>
+                                        <td style=""color: #64748b; font-weight: 600;"">Hạn giữ chỗ đến:</td>
+                                        <td style=""color: #0f172a;"">" + expiredStr + @"</td>
+                                    </tr>
+                                    <tr style=""border-top: 1px dashed #cbd5e1;"">
+                                        <td style=""color: #64748b; font-weight: 600; padding-top: 12px;"">Phí ước tính:</td>
+                                        <td style=""color: #059669; font-weight: 700; font-size: 18px; padding-top: 12px;"">" + feeStr + @" VNĐ</td>
+                                    </tr>
+                                    <tr>
+                                        <td style=""color: #64748b; font-weight: 600;"">Phương thức thanh toán:</td>
+                                        <td style=""color: #0f172a;"">" + paymentMethod + @"</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Notice & Instructions -->
+                            <div style=""border-left: 4px solid #10b981; background-color: #f0fdf4; padding: 15px 20px; border-radius: 4px; margin-bottom: 25px;"">
+                                <h4 style=""margin: 0 0 8px 0; color: #065f46; font-size: 15px;"">📌 Hướng dẫn khi vào bãi đỗ xe:</h4>
+                                <ul style=""margin: 0; padding-left: 18px; color: #166534; font-size: 13px; line-height: 1.6;"">
+                                    <li>Vui lòng di chuyển xe đến bãi đúng biển số đăng ký <strong>" + licensePlate + @"</strong>.</li>
+                                    <li>Mã giữ chỗ có hiệu lực đến trước <strong>" + expiredTimeStr + @"</strong>. Quá thời gian này đơn sẽ tự động bị hủy theo quy định.</li>
+                                </ul>
+                            </div>
+
+                            <p style=""font-size: 14px; color: #64748b; line-height: 1.6; margin: 0;"">
+                                Nếu Quý khách cần hỗ trợ thêm, vui lòng liên hệ hotline bộ phận CSKH eParking hoặc truy cập trang quản lý đơn đặt chỗ trên ứng dụng.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style=""background-color: #f1f5f9; padding: 20px 30px; text-align: center; border-top: 1px solid #e2e8f0;"">
+                            <p style=""margin: 0; font-size: 13px; color: #64748b;"">Trân trọng,</p>
+                            <p style=""margin: 4px 0 0 0; font-size: 14px; font-weight: 700; color: #0f172a;"">Đội ngũ eParking Management</p>
+                            <p style=""margin: 12px 0 0 0; font-size: 12px; color: #94a3b8;"">
+                                Đây là email tự động từ hệ thống. Vui lòng không phản hồi trực tiếp vào thư này.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>";
+        }
+
         public static string BuildPaymentSuccessEmailHtml(
             string userName,
             string bookingId,

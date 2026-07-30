@@ -106,120 +106,95 @@ export default function ManagerBuilding() {
   }
 
   return (
-    <div className="animate-slide-in flex flex-col lg:flex-row gap-6 h-full">
+    <div className="animate-slide-in grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
       {/* LEFT PANEL: OVERVIEW & REAL-TIME STATS */}
-      <div className="flex-1 space-y-6">
-        <div className="card">
-          <div className="flex items-center gap-3.5 mb-6">
-            <div className="p-3 bg-blue-100 dark:bg-blue-955/40 text-blue-600 dark:text-blue-400 rounded-xl shadow-sm">
-              <Building2 size={24} />
-            </div>
-            <div>
-              <h2 className="text-lg font-black text-slate-800 dark:text-white leading-tight">
-                {buildingData?.building_name} {language === 'en' ? 'Overview' : 'Tổng quan'}
-              </h2>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center gap-3">
-              <Layers className="text-blue-500 shrink-0" size={20} />
+      <div className="flex flex-col">
+        <div className="card h-full flex flex-col justify-between p-6 sm:p-7">
+          <div>
+            <div className="flex items-center gap-3.5 mb-6">
+              <div className="p-3 bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl shadow-xs">
+                <Building2 size={24} />
+              </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  {language === 'en' ? 'Floors' : 'Số tầng'}
-                </span>
-                <span className="text-lg font-bold text-slate-800 dark:text-white font-sans">
-                  {buildingData?.total_floors} {language === 'en' ? 'Levels' : 'Tầng'}
-                </span>
+                <h2 className="text-lg font-black text-slate-800 dark:text-white leading-tight">
+                  {buildingData?.building_name} {language === 'en' ? 'Overview' : 'Tổng quan'}
+                </h2>
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center gap-3">
-              <LayoutGrid className="text-blue-500 shrink-0" size={20} />
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  {language === 'en' ? 'Total Slots' : 'Tổng số chỗ'}
-                </span>
-                <span className="text-lg font-bold text-slate-800 dark:text-white font-sans">
-                  {buildingData?.total_slots} {language === 'en' ? 'Slots' : 'Chỗ'}
-                </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center gap-3">
+                <Layers className="text-blue-500 shrink-0" size={20} />
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    {language === 'en' ? 'Floors' : 'Số tầng'}
+                  </span>
+                  <span className="text-lg font-bold text-slate-800 dark:text-white font-sans">
+                    {buildingData?.total_floors} {language === 'en' ? 'Levels' : 'Tầng'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center gap-3">
+                <LayoutGrid className="text-blue-500 shrink-0" size={20} />
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    {language === 'en' ? 'Total Slots' : 'Tổng số chỗ'}
+                  </span>
+                  <span className="text-lg font-bold text-slate-800 dark:text-white font-sans">
+                    {buildingData?.total_slots} {language === 'en' ? 'Slots' : 'Chỗ'}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase block mb-1">
-                {language === 'en' ? 'Building Address' : 'Địa chỉ tòa nhà'}
-              </span>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
-                <MapPin size={16} className="text-slate-400 mt-0.5 shrink-0" />
-                {buildingData?.address || (language === 'en' ? 'No Address configured' : 'Chưa cấu hình địa chỉ')}
-              </p>
-            </div>
+            <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase block mb-1">
+                  {language === 'en' ? 'Building Address' : 'Địa chỉ tòa nhà'}
+                </span>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
+                  <MapPin size={16} className="text-slate-400 mt-0.5 shrink-0" />
+                  {buildingData?.address || (language === 'en' ? 'No Address configured' : 'Chưa cấu hình địa chỉ')}
+                </p>
+              </div>
 
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase block mb-2">
-                {language === 'en' ? 'Operation Mode' : 'Chế độ hoạt động'}
-              </span>
-              <div className="flex items-start gap-2">
-                <Clock size={16} className="text-slate-400 mt-0.5 shrink-0" />
-                <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex flex-col gap-1">
-                  {buildingData?.operation_hours?.is_24_7 ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-250 w-fit">
-                      {language === 'en' ? 'Open 24/7 (Always Open)' : 'Mở cửa 24/7 (Luôn mở)'}
-                    </span>
-                  ) : (
-                    <>
-                      <span>
-                        {language === 'en'
-                          ? `Weekdays: ${buildingData?.operation_hours?.weekday_hours}`
-                          : `Ngày thường: ${buildingData?.operation_hours?.weekday_hours}`}
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase block mb-2">
+                  {language === 'en' ? 'Operation Mode' : 'Chế độ hoạt động'}
+                </span>
+                <div className="flex items-start gap-2">
+                  <Clock size={16} className="text-slate-400 mt-0.5 shrink-0" />
+                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex flex-col gap-1">
+                    {buildingData?.operation_hours?.is_24_7 ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 w-fit">
+                        {language === 'en' ? 'Open 24/7 (Always Open)' : 'Mở cửa 24/7 (Luôn mở)'}
                       </span>
-                      <span>
-                        {language === 'en'
-                          ? `Weekends: ${buildingData?.operation_hours?.weekend_hours}`
-                          : `Cuối tuần: ${buildingData?.operation_hours?.weekend_hours}`}
-                      </span>
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <span>
+                          {language === 'en'
+                            ? `Weekdays: ${buildingData?.operation_hours?.weekday_hours}`
+                            : `Ngày thường: ${buildingData?.operation_hours?.weekday_hours}`}
+                        </span>
+                        <span>
+                          {language === 'en'
+                            ? `Weekends: ${buildingData?.operation_hours?.weekend_hours}`
+                            : `Cuối tuần: ${buildingData?.operation_hours?.weekend_hours}`}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
-        {/* OCCUPANCY CHARTS/DETAILS */}
-        {buildingData?.current_occupancy && (
-          <div className="card">
-            <h3 className="subsection-title">
-              {language === 'en' ? 'Occupancy Rate' : 'Tỉ lệ lấp đầy'}
-            </h3>
-
-            <div className="space-y-4">
-              <div className="flex justify-between text-sm font-bold">
-                <span className="text-slate-500">
-                  {language === 'en' ? 'Filled Slots' : 'Số chỗ đã đỗ'}
-                </span>
-                <span className="text-blue-600 dark:text-blue-400 font-sans">
-                  {buildingData.current_occupancy.total_occupied} / {buildingData.total_slots} {language === 'en' ? 'slots' : 'chỗ'}
-                </span>
-              </div>
-
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-3.5 rounded-full overflow-hidden shadow-inner">
-                <div
-                  className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${buildingData.current_occupancy.occupancy_rate}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* RIGHT PANEL: CONFIGURATION FORM */}
-      <div className="w-full lg:w-96">
-        <div className="card h-full">
+      <div className="flex flex-col">
+        <div className="card h-full flex flex-col justify-between p-6 sm:p-7">
           <h3 className="subsection-title flex items-center gap-2">
             {language === 'en' ? 'Adjust Building Info' : 'Cấu hình Tòa nhà'}
           </h3>

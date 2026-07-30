@@ -39,11 +39,11 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> Export([FromQuery] DashboardFilterRequest filter, [FromQuery] string format = "csv")
     {
         if (format.ToLower() == "pdf")
-            return BadRequest(new { success = false, message = "PDF export is not yet supported. Use format=csv." });
+            return BadRequest(new { success = false, message = "PDF export is not yet supported. Use format=csv or format=xls." });
 
-        var csvBytes = await _service.ExportCsvAsync(filter);
-        string fileName = $"dashboard_report_{filter.Period}_{DateTime.Today:yyyyMMdd}.csv";
+        var bytes = await _service.ExportCsvAsync(filter);
+        string fileName = $"BaoCao_Dashboard_{filter.Period}_{DateTime.Now:yyyyMMdd_HHmmss}.xls";
 
-        return File(csvBytes, "text/csv", fileName);
+        return File(bytes, "application/vnd.ms-excel", fileName);
     }
 }

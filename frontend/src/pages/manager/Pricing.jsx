@@ -268,14 +268,13 @@ export default function ManagerPricing() {
                     >
                       <div className="flex justify-between items-start mb-5">
                         <div className="flex items-center gap-3">
-                          <div className="p-3 rounded-2xl shadow-sm" >
+                          <div className="p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800" >
                             {isCar ? <Car size={24} /> : <Bike size={24} />}
                           </div>
                           <div>
                             <h4 className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
                               {type.vehicle_type_name}
                             </h4>
-                            <p className="text-[10px] font-sans text-slate-400 mt-0.5">ID: {type.vehicle_type_id}</p>
                           </div>
                         </div>
 
@@ -296,11 +295,11 @@ export default function ManagerPricing() {
                           {/* Base Price Display */}
                           <div className="text-center py-4 bg-slate-50/50 dark:bg-slate-800/10 rounded-2xl border border-slate-100/50 dark:border-slate-800/20">
                             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">
-                              {language === 'en' ? 'Base Entry Fee' : 'Giá vào cổng'} ({activePolicy.base_hours}h)
+                              {language === 'en' ? `First ${activePolicy.base_hours} Hours` : `${activePolicy.base_hours}h đầu tiên`}
                             </span>
                             <div className="text-3xl font-black text-slate-800 dark:text-white font-sans flex items-center justify-center gap-1">
                               {parseFloat(activePolicy.base_price).toLocaleString()}
-                              <span className="text-base font-bold text-slate-400">₫</span>
+                              <span className="text-base font-bold text-slate-400">VNĐ</span>
                             </div>
                           </div>
 
@@ -310,11 +309,11 @@ export default function ManagerPricing() {
                               <div className="flex items-center gap-2">
                                 <Clock size={16} className="text-blue-500" />
                                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                  {language === 'en' ? `Subsequent Rate (per ${activePolicy.subsequent_hours}h)` : `Giá block tiếp theo (mỗi ${activePolicy.subsequent_hours}h)`}
+                                  {language === 'en' ? `After ${activePolicy.base_hours} Hours` : `Sau ${activePolicy.base_hours} Giờ`}
                                 </span>
                               </div>
                               <span className="text-sm font-bold font-sans text-slate-800 dark:text-white">
-                                +{parseFloat(activePolicy.subsequent_rate).toLocaleString()} ₫
+                                {parseFloat(activePolicy.subsequent_rate).toLocaleString()} VNĐ / {activePolicy.subsequent_hours}h
                               </span>
                             </div>
 
@@ -322,11 +321,11 @@ export default function ManagerPricing() {
                               <div className="flex items-center gap-2">
                                 <Calendar size={16} className="text-indigo-500" />
                                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                  {language === 'en' ? 'Daily Max Price (24h)' : 'Giá trần 24h'}
+                                  {language === 'en' ? 'Daily Max (24H)' : 'Mức phí tối đa (24H)'}
                                 </span>
                               </div>
                               <span className="text-sm font-bold font-sans text-slate-800 dark:text-white">
-                                {parseFloat(activePolicy.daily_max_price).toLocaleString()} ₫
+                                {parseFloat(activePolicy.daily_max_price).toLocaleString()} VNĐ
                               </span>
                             </div>
 
@@ -338,7 +337,7 @@ export default function ManagerPricing() {
                                 </span>
                               </div>
                               <span className="text-sm font-bold font-sans text-slate-800 dark:text-white">
-                                {parseFloat(activePolicy.handling_fee || 0).toLocaleString()} ₫
+                                {parseFloat(activePolicy.handling_fee || 0).toLocaleString()} VNĐ
                               </span>
                             </div>
                           </div>
@@ -416,13 +415,12 @@ export default function ManagerPricing() {
                   <thead>
                     <tr>
                       <th className="table-header text-xs">{language === 'en' ? 'Vehicle Type' : 'Loại xe'}</th>
-                      <th className="table-header text-xs">{language === 'en' ? 'Base Rate' : 'Giá vào cổng'}</th>
-                      <th className="table-header text-xs">{language === 'en' ? 'Subsequent Rate' : 'Giá block sau'}</th>
-                      <th className="table-header text-xs">{language === 'en' ? 'Daily Max' : 'Giá trần 24h'}</th>
+                      <th className="table-header text-xs">{language === 'en' ? 'First Hours' : 'Khung giờ đầu'}</th>
+                      <th className="table-header text-xs">{language === 'en' ? 'After First Hours' : 'Sau khung giờ đầu'}</th>
+                      <th className="table-header text-xs">{language === 'en' ? 'Daily Max (24H)' : 'Mức phí tối đa (24H)'}</th>
                       <th className="table-header text-xs">{language === 'en' ? 'Lost Card Penalty' : 'Phí mất thẻ'}</th>
                       <th className="table-header text-xs">{language === 'en' ? 'Effective Date' : 'Ngày hiệu lực'}</th>
                       <th className="table-header text-xs">{language === 'en' ? 'Status' : 'Trạng thái'}</th>
-                      <th className="table-header text-right text-xs">{language === 'en' ? 'Actions' : 'Thao tác'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -439,25 +437,23 @@ export default function ManagerPricing() {
                           >
                             <td className="table-cell">
                               <div className="flex items-center gap-2">
-                                <div className={`p-1.5 rounded-lg ${isCar ? 'text-blue-500 bg-blue-50 dark:bg-blue-950/40' : 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'}`}>
-                                  {isCar ? <Car size={14} /> : <Bike size={14} />}
-                                </div>
+
                                 <span className="font-semibold text-xs text-slate-800 dark:text-slate-200">
                                   {policy.vehicle_type_name || `Type ${policy.vehicle_type_id}`}
                                 </span>
                               </div>
                             </td>
                             <td className="table-cell font-semibold font-sans text-xs text-slate-700 dark:text-slate-300">
-                              {parseFloat(policy.base_price).toLocaleString()} ₫ ({policy.base_hours}h)
+                              {parseFloat(policy.base_price).toLocaleString()} VNĐ ({policy.base_hours}h)
                             </td>
                             <td className="table-cell font-semibold font-sans text-xs text-slate-700 dark:text-slate-300">
-                              +{parseFloat(policy.subsequent_rate).toLocaleString()} ₫ ({policy.subsequent_hours}h)
+                              +{parseFloat(policy.subsequent_rate).toLocaleString()} VNĐ ({policy.subsequent_hours}h)
                             </td>
                             <td className="table-cell font-semibold font-sans text-xs text-slate-700 dark:text-slate-300">
-                              {parseFloat(policy.daily_max_price).toLocaleString()} ₫
+                              {parseFloat(policy.daily_max_price).toLocaleString()} VNĐ
                             </td>
                             <td className="table-cell font-semibold font-sans text-xs text-slate-700 dark:text-slate-300">
-                              {parseFloat(policy.handling_fee || 0).toLocaleString()} ₫
+                              {parseFloat(policy.handling_fee || 0).toLocaleString()} VNĐ
                             </td>
                             <td className="table-cell font-semibold font-sans text-xs text-slate-500 dark:text-slate-400">
                               {policy.effective_date}
@@ -467,24 +463,7 @@ export default function ManagerPricing() {
                                 {statusInfo.label}
                               </span>
                             </td>
-                            <td className="table-cell text-right">
-                              <div className="flex justify-end items-center gap-1.5">
-                                <button
-                                  onClick={() => openEditModal(policy)}
-                                  className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded transition-all"
-                                  title="Edit Policy"
-                                >
-                                  <Edit size={14} />
-                                </button>
-                                <button
-                                  onClick={() => handleDeletePolicy(policy.policy_id)}
-                                  className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-all"
-                                  title="Delete Policy"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </td>
+
                           </tr>
                         );
                       })}
@@ -566,7 +545,7 @@ export default function ManagerPricing() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">{language === 'en' ? 'Base Price *' : 'Giá sàn vào cổng *'}</label>
+                  <label className="label">{language === 'en' ? 'Base Price *' : 'Giá khung giờ đầu *'}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -578,12 +557,12 @@ export default function ManagerPricing() {
                       placeholder="10000"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 font-bold text-xs">
-                      ₫
+                      VNĐ
                     </div>
                   </div>
                 </div>
                 <div>
-                  <label className="label">{language === 'en' ? 'Base Hours *' : 'Số giờ sàn vào cổng *'}</label>
+                  <label className="label">{language === 'en' ? 'Base Hours *' : 'Số giờ đầu tiên *'}</label>
                   <input
                     type="number"
                     required
@@ -598,7 +577,7 @@ export default function ManagerPricing() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">{language === 'en' ? 'Subsequent Rate *' : 'Giá block tiếp theo *'}</label>
+                  <label className="label">{language === 'en' ? 'Subsequent Rate *' : 'Giá sau giờ đầu *'}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -610,7 +589,7 @@ export default function ManagerPricing() {
                       placeholder="2000"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 font-bold text-xs">
-                      ₫
+                      VNĐ
                     </div>
                   </div>
                 </div>
@@ -630,7 +609,7 @@ export default function ManagerPricing() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">{language === 'en' ? 'Daily Max Price *' : 'Giá trần 24h *'}</label>
+                  <label className="label">{language === 'en' ? 'Daily Max Price (24H) *' : 'Mức phí tối đa (24H) *'}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -642,7 +621,7 @@ export default function ManagerPricing() {
                       placeholder="50000"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 font-bold text-xs">
-                      ₫
+                      VNĐ
                     </div>
                   </div>
                 </div>
@@ -659,7 +638,7 @@ export default function ManagerPricing() {
                       placeholder="2000"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 font-bold text-xs">
-                      ₫
+                      VNĐ
                     </div>
                   </div>
                 </div>
@@ -727,7 +706,7 @@ export default function ManagerPricing() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">{language === 'en' ? 'Base Price *' : 'Giá sàn vào cổng *'}</label>
+                  <label className="label">{language === 'en' ? 'Base Price *' : 'Giá khung giờ đầu *'}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -738,12 +717,12 @@ export default function ManagerPricing() {
                       className="input-field pr-10 font-sans font-bold"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 font-bold text-xs">
-                      ₫
+                      VNĐ
                     </div>
                   </div>
                 </div>
                 <div>
-                  <label className="label">{language === 'en' ? 'Base Hours *' : 'Số giờ sàn vào cổng *'}</label>
+                  <label className="label">{language === 'en' ? 'Base Hours *' : 'Số giờ đầu tiên *'}</label>
                   <input
                     type="number"
                     required
@@ -757,7 +736,7 @@ export default function ManagerPricing() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">{language === 'en' ? 'Subsequent Rate *' : 'Giá block tiếp theo *'}</label>
+                  <label className="label">{language === 'en' ? 'Subsequent Rate *' : 'Giá sau giờ đầu *'}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -768,7 +747,7 @@ export default function ManagerPricing() {
                       className="input-field pr-10 font-sans font-bold"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 font-bold text-xs">
-                      ₫
+                      VNĐ
                     </div>
                   </div>
                 </div>
@@ -787,7 +766,7 @@ export default function ManagerPricing() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">{language === 'en' ? 'Daily Max Price *' : 'Giá trần 24h *'}</label>
+                  <label className="label">{language === 'en' ? 'Daily Max Price (24H) *' : 'Mức phí tối đa (24H) *'}</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -798,7 +777,7 @@ export default function ManagerPricing() {
                       className="input-field pr-10 font-sans font-bold"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 font-bold text-xs">
-                      ₫
+                      VNĐ
                     </div>
                   </div>
                 </div>
@@ -814,7 +793,7 @@ export default function ManagerPricing() {
                       className="input-field pr-10 font-sans font-bold"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 font-bold text-xs">
-                      ₫
+                      VNĐ
                     </div>
                   </div>
                 </div>
