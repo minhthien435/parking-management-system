@@ -550,6 +550,25 @@ export default function StaffIncidentHandling() {
         }
     };
 
+    const formatDuration = (totalMinutes, lang = "vi") => {
+        if (!totalMinutes || totalMinutes <= 0) return lang === "vi" ? "0 phút" : "0 mins";
+        const days = Math.floor(totalMinutes / 1440);
+        const hours = Math.floor((totalMinutes % 1440) / 60);
+        const minutes = totalMinutes % 60;
+        const parts = [];
+        if (lang === "vi") {
+            if (days > 0) parts.push(`${days} ngày`);
+            if (hours > 0 || days > 0) parts.push(`${hours} giờ`);
+            if (minutes > 0 || (days === 0 && hours === 0)) parts.push(`${minutes} phút`);
+            return parts.join(" ");
+        } else {
+            if (days > 0) parts.push(`${days} day${days > 1 ? "s" : ""}`);
+            if (hours > 0 || days > 0) parts.push(`${hours} hr${hours > 1 ? "s" : ""}`);
+            if (minutes > 0 || (days === 0 && hours === 0)) parts.push(`${minutes} min${minutes > 1 ? "s" : ""}`);
+            return parts.join(" ");
+        }
+    };
+
     const renderSystemData = () => {
         if (!foundSession) return null;
         return (
@@ -577,7 +596,7 @@ export default function StaffIncidentHandling() {
                                     : "--:--:-- --/--/----"}
                             </span>
                         </div>
-                        <div className="flex justify-between"><span className="text-slate-400">{t[language].durationLabel}</span><span className="font-sans text-slate-900 dark:text-white rounded font-black">{foundSession.duration_minutes} {t[language].mins}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">{t[language].durationLabel}</span><span className="font-sans text-slate-900 dark:text-white rounded font-black">{formatDuration(foundSession.duration_minutes, language)}</span></div>
                         <div className="flex justify-between"><span className="text-slate-400">{t[language].currentFeeLabel}</span><span className="font-sans text-amber-600 dark:text-amber-500 rounded font-black">{(foundSession.current_fee || 0).toLocaleString()} VND</span></div>
                     </div>
                 </div>

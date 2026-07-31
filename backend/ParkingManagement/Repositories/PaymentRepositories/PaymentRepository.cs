@@ -205,10 +205,21 @@ namespace ParkingManagement.Repositories
         public async Task<PricingPolicy?> GetActivePricingPolicyByVehicleTypeAsync(int vehicleTypeId)
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
-            return await _context.PricingPolicies
+
+            var policy = await _context.PricingPolicies
                 .Where(p => p.VehicleTypeId == vehicleTypeId && p.EffectiveDate <= today)
                 .OrderByDescending(p => p.EffectiveDate)
                 .FirstOrDefaultAsync();
+
+            if (policy == null)
+            {
+                policy = await _context.PricingPolicies
+                    .Where(p => p.VehicleTypeId == vehicleTypeId)
+                    .OrderByDescending(p => p.EffectiveDate)
+                    .FirstOrDefaultAsync();
+            }
+
+            return policy;
         }
     }
 }

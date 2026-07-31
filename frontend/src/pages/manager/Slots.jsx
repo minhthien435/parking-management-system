@@ -8,6 +8,7 @@ import {
   Calendar, ChevronLeft, ChevronRight, Plus, Edit, X, ArrowLeft
 } from "lucide-react";
 import { useLanguage } from "../../hooks/useLanguage";
+import { getToastMsg } from "../../utils/toastHelper";
 
 const t = {
   vi: {
@@ -1032,11 +1033,15 @@ export default function ManagerSlots() {
       }
     } catch (error) {
       console.error("Delete zone error:", error);
-      const serverMsg = error.response?.data?.message || error.response?.data?.Message || error.response?.data;
-      const defaultMsg = language === "en"
-        ? "Cannot delete zone: Phân khu này đang có ô đỗ được sử dụng hoặc đang đỗ xe."
-        : "Không thể xóa phân khu: Phân khu này đang có ô đỗ xe được sử dụng hoặc có xe đang đỗ.";
-      toast.error(typeof serverMsg === "string" ? serverMsg : defaultMsg);
+      const serverMsg = error.response?.data?.message || error.response?.data?.Message || (typeof error.response?.data === 'string' ? error.response?.data : null);
+      toast.error(
+        getToastMsg(
+          serverMsg,
+          "Cannot delete zone: Active vehicle parking sessions or pre-booked slots exist in this zone.",
+          "Không thể xóa phân khu: Phân khu này đang có ô đỗ xe được sử dụng hoặc có xe đang đỗ.",
+          language
+        )
+      );
     } finally {
       setFormSubmitting(false);
     }

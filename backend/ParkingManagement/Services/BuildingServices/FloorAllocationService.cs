@@ -175,18 +175,18 @@ public class FloorAllocationService : IFloorAllocationService
     }
     public async Task DeleteZoneAsync(int zoneId)
     {
-        var eneity=await _repo.GetByIdAsync(zoneId)
-            ?? throw new KeyNotFoundException($"Zone {zoneId} not found");
+        var entity = await _repo.GetByIdAsync(zoneId)
+            ?? throw new KeyNotFoundException($"Không tìm thấy phân khu {zoneId}");
         var activeVehicles = await _repo.CountActiveVehiclesAsync(zoneId);
         if (activeVehicles > 0)
             throw new InvalidOperationException(
-                $"Cannot delete: {activeVehicles} active parking session(s) using this vehicle type");
-        
+                $"Không thể xóa phân khu: Đang có {activeVehicles} lượt đỗ xe chưa hoàn tất trong phân khu này.");
+
         if (await _repo.HasActiveBookingsAsync(zoneId))
             throw new InvalidOperationException(
-                "Cannot delete: there are pending or confirmed bookings associated with this zone.");
+                "Không thể xóa phân khu: Đang có xe đã đặt chỗ trước (Booking) thuộc phân khu này.");
 
-        await _repo.DeleteZoneAsync(eneity);
+        await _repo.DeleteZoneAsync(entity);
 
     }
 

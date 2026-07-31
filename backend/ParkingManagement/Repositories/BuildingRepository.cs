@@ -28,13 +28,13 @@ public class BuildingRepository : IBuildingRepository
         if (building == null) return null;
 
         int activeFloors = await _db.FloorZones
-            .Where(z => z.BuildingId == buildingId)
+            .Where(z => z.BuildingId == buildingId && z.Status != "DELETED")
             .Select(z => z.FloorNumber)
             .Distinct()
             .CountAsync();
 
         int totalSlots = await _db.FloorZones
-            .Where(z => z.BuildingId == buildingId)
+            .Where(z => z.BuildingId == buildingId && z.Status != "DELETED")
             .SumAsync(z => z.Capacity);
 
         if (building.TotalFloors != activeFloors || building.TotalSlots != totalSlots)

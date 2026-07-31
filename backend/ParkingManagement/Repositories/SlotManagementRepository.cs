@@ -11,7 +11,7 @@ public interface ISlotManagementRepository
     Task<bool> SlotIdExistsAsync(string slotId);
     Task<bool> SlotNameExistsAsync(string slotName);
     Task<int> CountSlotsInZoneAsync(int zoneId);
-    Task<int> GetMaxSlotNumberAsync(int floorNumber); // <-- THÊM DÒNG NÀY
+    Task<int> GetMaxSlotNumberAsync(int floorNumber);
     Task<ParkingSession?> GetActiveSessionBySlotAsync(string slotId);
     Task AddSlotsAsync(List<ParkingSlot> slots);
     Task UpdateSlotAsync(ParkingSlot slot);
@@ -32,29 +32,28 @@ public class SlotManagementRepository : ISlotManagementRepository
         _db.FloorZones
            .Include(z => z.VehicleType)
            .Include(z => z.ParkingSlots)
-           .FirstOrDefaultAsync(z => z.ZoneId == zoneId);
-
+           .FirstOrDefaultAsync(z => z.ZoneId == zoneId && z.Status != "DELETED");
 
     public Task<ParkingSlot?> GetSlotByIdAsync(string slotId) =>
         _db.ParkingSlots
            .Include(s => s.Zone)
-           .FirstOrDefaultAsync(s => s.SlotId == slotId);
+           .FirstOrDefaultAsync(s => s.SlotId == slotId && s.Status != "DELETED" && s.Zone.Status != "DELETED");
 
     public Task<bool> SlotIdExistsAsync(string slotId) =>
-        _db.ParkingSlots.AnyAsync(s => s.SlotId == slotId);
+        _db.ParkingSlots.AnyAsync(s => s.SlotId == slotId && s.Status != "DELETED");
 
     public Task<bool> SlotNameExistsAsync(string slotName) =>
-        _db.ParkingSlots.AnyAsync(s => s.SlotName == slotName);
+        _db.ParkingSlots.AnyAsync(s => s.SlotName == slotName && s.Status != "DELETED");
 
     public Task<int> CountSlotsInZoneAsync(int zoneId) =>
-        _db.ParkingSlots.CountAsync(s => s.ZoneId == zoneId);
+        _db.ParkingSlots.CountAsync(s => s.ZoneId == zoneId && s.Status != "DELETED");
 
     public async Task<int> GetMaxSlotNumberAsync(int floorNumber)
     {
         string idPrefix = $"slt_{floorNumber}";
     
         var slotIds = await _db.ParkingSlots
-            .Where(s => s.SlotId.StartsWith(idPrefix))
+            .Where(s => s.SlotId.StartsWith(idPrefix) && s.Status != "DELETED")
             .Select(s => s.SlotId)
             .ToListAsync();
     
@@ -63,7 +62,7 @@ public class SlotManagementRepository : ISlotManagementRepository
         int maxNumber = 0;
         foreach (var id in slotIds)
         {
-            string numberPart = id.Substring(idPrefix.Length); // "slt_101" -> "01"
+            string numberPart = id.Substring(idPrefix.Length);
     
             if (int.TryParse(numberPart, out int parsedNum))
             {
@@ -74,7 +73,6 @@ public class SlotManagementRepository : ISlotManagementRepository
         return maxNumber;
     }
 
-    // Lấy session ACTIVE đang chiếm slot này
     public Task<ParkingSession?> GetActiveSessionBySlotAsync(string slotId) =>
         _db.ParkingSessions
            .FirstOrDefaultAsync(s => s.SlotId == slotId && s.Status == "ACTIVE");
@@ -85,13 +83,13 @@ public class SlotManagementRepository : ISlotManagementRepository
         if (building == null) return;
 
         int activeFloors = await _db.FloorZones
-            .Where(z => z.BuildingId == buildingId)
+            .Where(z => z.BuildingId == buildingId && z.Status != "DELETED")
             .Select(z => z.FloorNumber)
             .Distinct()
             .CountAsync();
 
         int totalSlots = await _db.FloorZones
-            .Where(z => z.BuildingId == buildingId)
+            .Where(z => z.BuildingId == buildingId && z.Status != "DELETED")
             .SumAsync(z => z.Capacity);
 
         if (building.TotalFloors != activeFloors || building.TotalSlots != totalSlots)
@@ -108,10 +106,10 @@ public class SlotManagementRepository : ISlotManagementRepository
         _db.ParkingSlots.AddRange(slots);
         await _db.SaveChangesAsync();
 
-        if (slots.Any())
+        var firstZoneId = slots.FirstOrDefault()?.ZoneId;
+        if (firstZoneId.HasValue)
         {
-            var zoneId = slots.First().ZoneId;
-            var zone = await _db.FloorZones.FirstOrDefaultAsync(z => z.ZoneId == zoneId);
+            var zone = await _db.FloorZones.FirstOrDefaultAsync(z => z.ZoneId == firstZoneId.Value && z.Status != "DELETED");
             if (zone != null && !string.IsNullOrEmpty(zone.BuildingId))
             {
                 await SyncBuildingStatsAsync(zone.BuildingId);
@@ -133,20 +131,11 @@ public class SlotManagementRepository : ISlotManagementRepository
 
     public async Task DeleteSlotAsync(ParkingSlot slot)
     {
-        var zone = slot.Zone;
-        if (zone == null)
-        {
-            zone = await _db.FloorZones.FirstOrDefaultAsync(z => z.ZoneId == slot.ZoneId);
-        }
-
-        if (zone != null && zone.Capacity > 0)
-        {
-            zone.Capacity--;
-            zone.AvailableCapacity--;
-        }
-        _db.ParkingSlots.Remove(slot);
+        slot.Status = "DELETED";
+        _db.ParkingSlots.Update(slot);
         await _db.SaveChangesAsync();
 
+        var zone = await _db.FloorZones.FirstOrDefaultAsync(z => z.ZoneId == slot.ZoneId && z.Status != "DELETED");
         if (zone != null && !string.IsNullOrEmpty(zone.BuildingId))
         {
             await SyncBuildingStatsAsync(zone.BuildingId);
