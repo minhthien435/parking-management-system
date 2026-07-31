@@ -526,7 +526,7 @@ export default function SessionLookup() {
                     ) : (
                       <CreditCard size={17} />
                     )}
-                    {language === "en" ? "Pay & Exit Now" : "Thanh toán & Ra xe"}
+                    {language === "en" ? "Pay now" : "Thanh toán & Ra xe"}
                   </button>
                 </div>
               </div>

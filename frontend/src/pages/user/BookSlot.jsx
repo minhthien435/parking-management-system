@@ -509,16 +509,22 @@ export default function BookSlot() {
     }
   }, [vehicleTypeId, expectedArrival, expectedDeparture, dateValidationError]);
 
-  const isPlateValid = useMemo(() => {
-    return licensePlate.trim().length >= 5;
+  const normalizedLicensePlate = useMemo(() => {
+    return licensePlate.replace(/[^A-Z0-9]/gi, "");
   }, [licensePlate]);
 
+  const isPlateValid = useMemo(() => {
+    return normalizedLicensePlate.length >= 7 && normalizedLicensePlate.length <= 9;
+  }, [normalizedLicensePlate]);
+
   const plateErrorMsg = useMemo(() => {
-    if (submitAttempted && !licensePlate.trim()) {
+    if (submitAttempted && !normalizedLicensePlate) {
       return language === "en" ? "Please enter your license plate." : "Vui lòng nhập biển số xe.";
     }
-    if (licensePlate.trim() && !isPlateValid) {
-      return language === "en" ? "License plate must be at least 5 characters." : "Biển số xe phải có ít nhất 5 ký tự.";
+    if (normalizedLicensePlate && !isPlateValid) {
+      return language === "en"
+        ? "License plate must contain 7 to 9 letters or digits (special characters and spaces are ignored)."
+        : "Biển số xe phải có 7 đến 9 ký tự chữ số/chuẩn, ký tự đặc biệt và khoảng trắng không được tính.";
     }
     if (conflictType) {
       if (conflictType === "duplicate") {
@@ -541,7 +547,7 @@ export default function BookSlot() {
         : "Biển số xe này đã được đăng ký cho loại phương tiện khác. Vui lòng kiểm tra lại.";
     }
     return "";
-  }, [submitAttempted, licensePlate, isPlateValid, conflictType, language]);
+  }, [submitAttempted, normalizedLicensePlate, isPlateValid, conflictType, language]);
 
   // Check form validation (without license plate requirement for disabled state)
   const isFormLocked = !!bookingRestriction;
@@ -557,8 +563,8 @@ export default function BookSlot() {
   }, [isFormLocked, expectedArrival, expectedDeparture, dateValidationError, priceError]);
 
   const handleContinueFromInfo = async () => {
-    const plate = licensePlate.trim();
-    if (!plate || plate.length < 5) {
+    const plate = normalizedLicensePlate;
+    if (!plate || plate.length < 7 || plate.length > 9) {
       setSubmitAttempted(true);
       return;
     }
@@ -588,7 +594,7 @@ export default function BookSlot() {
     setLoadingPayment(true);
     setBookingError("");
     try {
-      const plate = licensePlate.trim().toUpperCase();
+      const plate = normalizedLicensePlate;
 
       const bookingPayload = {
         slot_id: null,
@@ -995,7 +1001,7 @@ export default function BookSlot() {
 
             {/* License Plate Input */}
             <div>
-              <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1">
+              <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1">
                 {language === "en" ? "License Plate" : "Biển số xe"}
               </label>
               <input
@@ -1022,9 +1028,9 @@ export default function BookSlot() {
               />
               <p className="text-[11px] text-slate-500 dark:text-slate-300 mt-1.5 flex items-center gap-1 font-semibold leading-relaxed">
                 <Info size={12} className="text-blue-500 dark:text-blue-400 shrink-0" />
-                {language === "vi"
-                  ? "Nhập liền nhau, không cần nhập ký tự đặc biệt như (.) hoặc (-)."
-                  : "Enter without special characters like (.) or (-)."}
+                {language === "en"
+                  ? "Enter 7-9 letters/digits. Spaces and special characters are ignored."
+                  : "Nhập 7-9 ký tự chữ và số, khoảng trắng và ký tự đặc biệt sẽ không được tính."}
               </p>
               {plateErrorMsg && (
                 <p className="text-[10px] text-red-500 font-bold mt-1">
@@ -1036,7 +1042,7 @@ export default function BookSlot() {
             {/* Custom Date and Time Dropdown Picker */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5">
+                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                   <CalendarDays size={14} />
                   {language === "en" ? "Start Date" : "Ngày vào"}
                 </label>
@@ -1061,7 +1067,7 @@ export default function BookSlot() {
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5">
+                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                   <LogIn size={14} />
                   {language === "en" ? "Entry Time" : "Giờ vào"}
                 </label>
@@ -1090,7 +1096,7 @@ export default function BookSlot() {
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5">
+                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                   <CalendarDays size={14} />
                   {language === "en" ? "End Date" : "Ngày ra"}
                 </label>
@@ -1115,7 +1121,7 @@ export default function BookSlot() {
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5">
+                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                   <LogOut size={14} />
                   {language === "en" ? "Exit Time" : "Giờ ra"}
                 </label>
@@ -1169,7 +1175,9 @@ export default function BookSlot() {
                 </div>
                 {estimateData && (
                   <p className="text-[11px] text-slate-400 mt-2 font-medium">
-                    {estimateData.fee_note}
+                    {language === "en"
+                      ? `Base price: ${fmtVND(estimateData.base_price)} VND for the first ${estimateData.base_hours}h, then ${fmtVND(estimateData.subsequent_rate)} VND every ${estimateData.subsequent_hours}h. Daily max: ${fmtVND(estimateData.daily_max_price)} VND.`
+                      : `Giá khung: ${fmtVND(estimateData.base_price)} VND cho ${estimateData.base_hours}h đầu, sau đó ${fmtVND(estimateData.subsequent_rate)} VND mỗi ${estimateData.subsequent_hours}h. Giá tối đa mỗi ngày: ${fmtVND(estimateData.daily_max_price)} VND.`}
                   </p>
                 )}
                 {priceError && (
@@ -1660,7 +1668,7 @@ export default function BookSlot() {
               className="space-y-4"
             >
               <div>
-                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5">
+                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                   <Phone size={14} />
                   {language === "en" ? "Phone Number" : "Số điện thoại"}
                 </label>

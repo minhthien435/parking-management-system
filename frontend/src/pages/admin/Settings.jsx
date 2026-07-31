@@ -19,7 +19,7 @@ import api from "../../utils/api";
 
 export default function AdminSettings() {
   const { language } = useLanguage();
-  const [activeTab, setActiveTab] = useState("hardware"); // "hardware" | "database"
+  const [activeTab, setActiveTab] = useState("security"); // default to security tab
   const [loading, setLoading] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
   const [testBarrierLoading, setTestBarrierLoading] = useState(false);
@@ -149,8 +149,8 @@ export default function AdminSettings() {
           </h2>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
             {language === "en"
-              ? "Change prices, booking rules, gate cameras, and backup database."
-              : "Cấu hình cước phí bãi xe, quy tắc đặt trước, cổng barrier tự động và sao lưu dữ liệu."}
+              ? "Change prices, booking rules, and security settings."
+              : "Cấu hình cước phí bãi xe, quy tắc đặt trước và bảo mật hệ thống."}
           </p>
         </div>
 
@@ -172,19 +172,9 @@ export default function AdminSettings() {
       <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto gap-2 md:gap-6 no-scrollbar pb-px w-full shrink-0">
         {[
           {
-            id: "hardware",
-            label: language === "en" ? "Gates & Camera" : "Cổng & Camera",
-            icon: <Camera size={14} />
-          },
-          {
             id: "security",
             label: language === "en" ? "Security" : "Bảo Mật",
             icon: <ShieldAlert size={14} />
-          },
-          {
-            id: "database",
-            label: language === "en" ? "Backup Data" : "Sao Lưu Dữ Liệu",
-            icon: <Database size={14} />
           }
         ].map((tab) => (
           <button
