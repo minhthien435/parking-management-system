@@ -7,6 +7,7 @@ import {
   Calendar, ChevronLeft, ChevronRight, ArrowLeft, Trash2
 } from "lucide-react";
 import { useLanguage } from "../../hooks/useLanguage";
+import { getToastMsg } from "../../utils/toastHelper";
 
 const t = {
   vi: {
@@ -563,11 +564,11 @@ export default function SlotGateManagementPage() {
       });
 
       if (response.data.success) {
-        setSlotsData(response.data.data.slots);
+        setSlotsData(response.data.data.slots.filter(s => s.status !== "DELETED"));
       }
     } catch (err) {
       console.error("Fetch Slots Error:", err);
-      toast.error(err.response?.data?.message || t[language].errorLoadSlots);
+      toast.error(getToastMsg(err.response?.data?.message, t[language].errorLoadSlots, t[language].errorLoadSlots, language));
     } finally {
       setIsFetchingSlots(false);
     }
@@ -675,7 +676,7 @@ export default function SlotGateManagementPage() {
       setEstDuration(60);
       await Promise.all([fetchSlots(), fetchZoneStats()]);
     } catch (err) {
-      toast.error(err.response?.data?.message || t[language].toastUpdateError, { id: toastId });
+      toast.error(getToastMsg(err.response?.data?.message, t[language].toastUpdateError, t[language].toastUpdateError, language), { id: toastId });
     } finally {
       setIsUpdatingSlot(false);
     }
@@ -700,7 +701,7 @@ export default function SlotGateManagementPage() {
       setBulkEstDuration(60);
       await Promise.all([fetchSlots(), fetchZoneStats()]);
     } catch (err) {
-      toast.error(err.response?.data?.message || t[language].toastBulkError, { id: toastId });
+      toast.error(getToastMsg(err.response?.data?.message, t[language].toastBulkError, t[language].toastBulkError, language), { id: toastId });
     } finally {
       setIsBulkUpdating(false);
     }

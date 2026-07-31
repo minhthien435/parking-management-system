@@ -36,7 +36,8 @@ namespace ParkingManagement.Repositories
                          && z.Status == "ACTIVE"
                          && z.AvailableCapacity > 0)
                 .OrderBy(z => z.FloorNumber)
-                .ThenByDescending(z => z.AvailableCapacity)
+                .ThenBy(z => z.ZoneName)
+                .ThenBy(z => z.ZoneId)
                 .FirstOrDefaultAsync();
         }
 
@@ -234,10 +235,20 @@ namespace ParkingManagement.Repositories
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
 
-            return await _context.PricingPolicies
+            var policy = await _context.PricingPolicies
                 .Where(p => p.VehicleTypeId == vehicleTypeId && p.EffectiveDate <= today)
                 .OrderByDescending(p => p.EffectiveDate)
                 .FirstOrDefaultAsync();
+
+            if (policy == null)
+            {
+                policy = await _context.PricingPolicies
+                    .Where(p => p.VehicleTypeId == vehicleTypeId)
+                    .OrderByDescending(p => p.EffectiveDate)
+                    .FirstOrDefaultAsync();
+            }
+
+            return policy;
         }
 
         public async Task<(List<ParkingSlot> Slots, int TotalCount, Dictionary<string, int> StatusCounts)> GetPagedSlotsWithStatusAsync(SlotQueryFilterDto filter)
@@ -245,6 +256,7 @@ namespace ParkingManagement.Repositories
             var query = _context.ParkingSlots
                 .Include(s => s.Zone)
                 .Include(s => s.ParkingSessions)
+                .Where(s => s.Status != "DELETED" && s.Zone.Status != "DELETED")
                 .AsQueryable();
 
             if (filter.Floor.HasValue)
@@ -268,7 +280,7 @@ namespace ParkingManagement.Repositories
                 query = query.Where(s => s.Status == filter.Status.Trim().ToUpper());
             }
 
-            var zoneQuery = _context.FloorZones.AsQueryable();
+            var zoneQuery = _context.FloorZones.Where(z => z.Status != "DELETED").AsQueryable();
             if (filter.Floor.HasValue)
             {
                 zoneQuery = zoneQuery.Where(z => z.FloorNumber == filter.Floor.Value);
@@ -285,7 +297,6 @@ namespace ParkingManagement.Repositories
 
             var matchingZones = await zoneQuery.ToListAsync();
             var zoneIds = matchingZones.Select(z => z.ZoneId).ToList();
-            var vehicleTypeIds = matchingZones.Select(z => z.VehicleTypeId).Distinct().ToList();
 
             int totalCapacity = 0;
             int availableCapacity = 0;
@@ -293,10 +304,10 @@ namespace ParkingManagement.Repositories
             int reservedCount = 0;
             int maintenanceCount = 0;
 
-            bool hasSlots = await _context.ParkingSlots.AnyAsync(s => zoneIds.Contains(s.ZoneId));
+            bool hasSlots = await _context.ParkingSlots.AnyAsync(s => zoneIds.Contains(s.ZoneId) && s.Status != "DELETED");
             if (hasSlots)
             {
-                var slotsQuery = _context.ParkingSlots.Where(s => zoneIds.Contains(s.ZoneId));
+                var slotsQuery = _context.ParkingSlots.Where(s => zoneIds.Contains(s.ZoneId) && s.Status != "DELETED");
                 totalCapacity = await slotsQuery.CountAsync();
                 availableCapacity = await slotsQuery.CountAsync(s => s.Status == "AVAILABLE");
                 occupiedCount = await slotsQuery.CountAsync(s => s.Status == "OCCUPIED");
@@ -579,6 +590,7 @@ namespace ParkingManagement.Repositories
             var zones = await _context.FloorZones
                 .Include(z => z.VehicleType)
                 .Include(z => z.ParkingSlots)
+                .Where(z => z.Status != "DELETED")
                 .ToListAsync();
 
             // Số xe đang đỗ thực tế theo từng zone (ACTIVE sessions có ZoneId hoặc gián tiếp qua Slot)
@@ -597,12 +609,13 @@ namespace ParkingManagement.Repositories
 
             return zones.Select(z =>
             {
-                bool hasSlots = z.ParkingSlots.Any();
-                int capacity = hasSlots ? z.ParkingSlots.Count : z.Capacity;
-                int availableCapacity = hasSlots ? z.ParkingSlots.Count(s => s.Status == "AVAILABLE") : z.AvailableCapacity;
-                int occupiedCount = hasSlots ? z.ParkingSlots.Count(s => s.Status == "OCCUPIED") : occupiedByZone.GetValueOrDefault(z.ZoneId, 0);
-                int bookedCount = hasSlots ? z.ParkingSlots.Count(s => s.Status == "RESERVED") : bookedByZone.GetValueOrDefault(z.ZoneId, 0);
-                int maintenanceCount = z.ParkingSlots.Count(s => s.Status == "MAINTENANCE");
+                var activeSlots = z.ParkingSlots.Where(s => s.Status != "DELETED").ToList();
+                bool hasSlots = activeSlots.Any();
+                int capacity = hasSlots ? activeSlots.Count : z.Capacity;
+                int availableCapacity = hasSlots ? activeSlots.Count(s => s.Status == "AVAILABLE") : z.AvailableCapacity;
+                int occupiedCount = hasSlots ? activeSlots.Count(s => s.Status == "OCCUPIED") : occupiedByZone.GetValueOrDefault(z.ZoneId, 0);
+                int bookedCount = hasSlots ? activeSlots.Count(s => s.Status == "RESERVED") : bookedByZone.GetValueOrDefault(z.ZoneId, 0);
+                int maintenanceCount = activeSlots.Count(s => s.Status == "MAINTENANCE");
 
                 return new ZoneRealtimeStatsDto
                 {
