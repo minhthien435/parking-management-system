@@ -133,7 +133,7 @@ namespace ParkingManagement.Repositories
         
                     if (!string.IsNullOrEmpty(payment.BookingId))
                     {
-                        await SendPaymentEmailNotificationAsync(payment.BookingId, payment.PaymentMethod ?? "VNPAY", transactionId, finalAmount);
+                        await SendPaymentEmailNotificationAsync(payment.BookingId, payment.PaymentMethod ?? "PAYOS", transactionId, finalAmount);
                     }
                 }
                 catch (Exception)

@@ -1,5 +1,6 @@
 // src/pages/user/Profile.jsx
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Camera, Edit2, Save, X, ArrowLeft, User, Mail, Phone, Check, RefreshCw, AlertCircle } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth"; // Gọi trực tiếp bộ kết nối bảo mật Context toàn cục
@@ -170,16 +171,17 @@ export default function Profile() {
   const initial = profile.full_name ? profile.full_name.charAt(0).toUpperCase() : "U";
 
   if (loading) {
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm text-white space-y-3">
+    return createPortal(
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm text-white space-y-3">
         <RefreshCw className="w-7 h-7 text-blue-500 animate-spin" />
         <p className="text-sm text-stone-300 font-medium">{language === "en" ? "Loading account details..." : "Đang tải thông tin tài khoản..."}</p>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
       <div ref={modalRef} className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
         {/* HEADER */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
@@ -294,6 +296,7 @@ export default function Profile() {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

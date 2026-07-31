@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import api from "../../utils/api";
 import axios from "axios";
@@ -688,7 +689,7 @@ export default function CheckOutPage() {
                             }
                         }}
                         onClick={() => fileInputRef.current?.click()}
-                        className={`relative border-2 border-dashed flex-1 min-h-[220px] max-h-[360px] sm:min-h-[280px] lg:min-h-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 rounded-md ${isDragOver
+                        className={`relative border-2 border-dashed flex-1 w-full min-h-[300px] flex flex-col items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 rounded-md ${isDragOver
                             ? "border-blue-500 bg-blue-50/20 dark:bg-blue-950/20"
                             : isLoading
                                 ? "border-blue-500 bg-blue-50/5 dark:bg-blue-950/5 shadow-md shadow-blue-500/10"
@@ -712,11 +713,11 @@ export default function CheckOutPage() {
                         />
 
                         {capturedImage ? (
-                            <div className="relative w-full h-full max-h-[350px] group flex items-center justify-center bg-slate-950 overflow-hidden">
+                            <div className="relative w-full h-full min-h-[300px] group flex items-center justify-center bg-slate-950 overflow-hidden">
                                 <img
                                     src={capturedImage}
                                     alt="Uploaded Vehicle"
-                                    className="max-w-full max-h-[340px] w-auto h-auto object-contain"
+                                    className="absolute inset-0 m-auto max-w-full max-h-full w-auto h-auto object-contain p-2"
                                 />
                                 <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                     <button
@@ -1086,9 +1087,9 @@ export default function CheckOutPage() {
             </div>
 
             {/* LIGHTBOX MODAL OVERLAY */}
-            {lightboxImage && (
+            {lightboxImage && createPortal(
                 <div
-                    className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 cursor-zoom-out"
+                    className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-[9999] flex flex-col items-center justify-center p-4 cursor-zoom-out"
                     onClick={() => setLightboxImage(null)}
                 >
                     <div className="absolute top-5 right-5 text-slate-500 hover:text-slate-200 dark:text-slate-400 dark:hover:text-white bg-white/10 dark:bg-slate-900/60 p-2 rounded-full border border-slate-300 dark:border-slate-800 transition-colors">
@@ -1100,13 +1101,14 @@ export default function CheckOutPage() {
                             <p className="font-sans font-bold tracking-widest text-sm text-yellow-500 dark:text-yellow-400">{plateNumber || t[language].noPlateDetected}</p>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* BOOKING DETAILS & UNLOCK MODAL */}
-            {showBookingModal && session && (
+            {showBookingModal && session && createPortal(
                 <div
-                    className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
                     onClick={() => setShowBookingModal(false)}
                 >
                     <div
@@ -1222,7 +1224,8 @@ export default function CheckOutPage() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
         </div>

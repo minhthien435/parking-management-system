@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Car,
   Bike,
@@ -652,7 +653,7 @@ export default function BookSlot() {
     try {
       const payload = {
         booking_id: createdBooking.booking_id,
-        payment_method: "VNPAY"
+        payment_method: "PAYOS"
       };
 
       const res = await api.post("/payments/confirm-mock", payload);
@@ -1418,34 +1419,6 @@ export default function BookSlot() {
                     className="accent-blue-500"
                   />
                 </div>
-
-                {/* VNPAY Mock Option */}
-                <div
-                  onClick={() => setPaymentMethod("VNPAY")}
-                  className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center gap-4 ${paymentMethod === "VNPAY"
-                    ? "border-blue-500 bg-blue-50/20 dark:bg-blue-950/20 shadow-lg shadow-blue-500/10"
-                    : "border-slate-200 dark:border-slate-800 bg-transparent hover:border-slate-350 dark:hover:border-slate-700"
-                    }`}
-                >
-                  <div className={`p-3 rounded-xl ${paymentMethod === "VNPAY" ? "bg-blue-500/10 text-blue-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400"}`}>
-                    <CreditCard size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-bold text-slate-800 dark:text-white">
-                      {language === "en" ? "VNPAY Online Payment (Mock)" : "Thanh toán trực tuyến VNPAY (Giả lập)"}
-                    </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                      {language === "en" ? "Secure mock gateway for sandbox testing" : "Cổng thanh toán giả lập dành cho kiểm thử"}
-                    </p>
-                  </div>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    checked={paymentMethod === "VNPAY"}
-                    onChange={() => setPaymentMethod("VNPAY")}
-                    className="accent-blue-500"
-                  />
-                </div>
               </div>
             </div>
 
@@ -1607,8 +1580,8 @@ export default function BookSlot() {
       </div>
 
       {/* Modal yêu cầu nhập số điện thoại */}
-      {showPhoneModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+      {showPhoneModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 w-full max-w-md animate-scale-in text-left">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
@@ -1732,7 +1705,8 @@ export default function BookSlot() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
 

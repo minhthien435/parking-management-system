@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import api from "../../utils/api";
 import {
   Search,
@@ -40,7 +41,7 @@ const t = {
     colStatus: "Trạng thái",
     statusPending: "Đang chờ",
     statusActive: "Đang đỗ",
-    statusCompleted: "Đã trả xe",
+    statusCompleted: "Đã hoàn thành",
     statusUnknown: "Không rõ",
     detailTitle: "Chi tiết đặt chỗ & Đối chiếu",
     detailCustomerGroup: "Thông tin khách hàng",
@@ -564,8 +565,8 @@ export default function BookingReconciliationPage() {
       </div>
 
       {/* DETAILS POPUP / MODAL */}
-      {isModalOpen && selectedBooking && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+      {isModalOpen && selectedBooking && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col scale-up">
 
             {/* Modal Header */}
@@ -830,13 +831,14 @@ export default function BookingReconciliationPage() {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Lightbox */}
-      {lightboxImage && (
+      {lightboxImage && createPortal(
         <div
-          className="fixed inset-0 bg-slate-955/80 dark:bg-slate-955/90 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 cursor-zoom-out animate-fadeIn"
+          className="fixed inset-0 bg-slate-955/80 dark:bg-slate-955/90 backdrop-blur-md z-[9999] flex flex-col items-center justify-center p-4 cursor-zoom-out animate-fadeIn"
           onClick={() => setLightboxImage(null)}
         >
           <div className="absolute top-5 right-5 text-slate-500 hover:text-slate-200 dark:text-slate-400 dark:hover:text-white bg-white/10 dark:bg-slate-900/60 p-2 rounded-full border border-slate-300 dark:border-slate-800 transition-colors">
@@ -848,7 +850,8 @@ export default function BookingReconciliationPage() {
           >
             <img src={lightboxImage} alt="Full evidence" className="w-full h-auto max-h-[85vh] md:max-h-[88vh] object-contain" />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -57,14 +57,23 @@ public class DashboardRepository : IDashboardRepository
 
     public async Task<Dictionary<string, decimal>> GetRevenueByPaymentMethodAsync(DateTime from, DateTime to)
     {
-        var result = await _db.Payments
+        var rawResult = await _db.Payments
             .Where(p => p.PaymentTime >= from && p.PaymentTime <= to
                      && p.Status == "SUCCESS")
             .GroupBy(p => p.PaymentMethod)
             .Select(g => new { Method = g.Key, Total = g.Sum(p => p.AmountPaid) })
             .ToListAsync();
 
-        return result.ToDictionary(x => x.Method, x => x.Total);
+        var dict = new Dictionary<string, decimal>();
+        foreach (var x in rawResult)
+        {
+            string key = (x.Method ?? "CASH").ToUpper() == "VNPAY" ? "CASH" : (x.Method ?? "CASH");
+            if (!dict.ContainsKey(key))
+                dict[key] = 0;
+            dict[key] += x.Total;
+        }
+
+        return dict;
     }
 
     public async Task<int> GetTotalSlotsAsync(string buildingId)

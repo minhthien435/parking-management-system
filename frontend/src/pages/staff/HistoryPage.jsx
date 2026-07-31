@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import api from "../../utils/api";
 import {
     Sliders, Calendar, RefreshCcw, Info,
@@ -681,8 +682,8 @@ export default function HistoryPage() {
             </div>
 
             {/* selectedSession Details Modal */}
-            {selectedSession && (
-                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 flex items-center justify-center p-4 animate-fadeIn">
+            {selectedSession && createPortal(
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fadeIn">
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg max-w-4xl w-full p-5 xl:p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden scaleUp transform transition-all duration-300" onClick={(e) => e.stopPropagation()}>
                         {/* Header */}
                         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 shrink-0">
@@ -874,13 +875,14 @@ export default function HistoryPage() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* LIGHTBOX ZOOM PREVIEW */}
-            {lightboxImage && (
+            {lightboxImage && createPortal(
                 <div
-                    className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 cursor-zoom-out animate-fadeIn"
+                    className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-[9999] flex flex-col items-center justify-center p-4 cursor-zoom-out animate-fadeIn"
                     onClick={() => setLightboxImage(null)}
                 >
                     <div className="absolute top-5 right-5 text-slate-500 hover:text-slate-200 dark:text-slate-400 dark:hover:text-white bg-white/10 dark:bg-slate-900/60 p-2 rounded-full border border-slate-300 dark:border-slate-800 transition-colors">
@@ -894,7 +896,8 @@ export default function HistoryPage() {
                             </p>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

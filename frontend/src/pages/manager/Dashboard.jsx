@@ -408,6 +408,7 @@ export default function ManagerDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+
       const params = { period };
       if (period === "day") {
         params.start_date = startDate;
@@ -418,6 +419,16 @@ export default function ManagerDashboard() {
               ? "Please select both start and end dates."
               : "Vui lòng chọn ngày bắt đầu và kết thúc."
           );
+          setLoading(false);
+          return;
+        }
+        if (new Date(startDate) > new Date(endDate)) {
+          toast.error(
+            language === "en"
+              ? "Invalid date range: Start date cannot be after End date."
+              : "Chọn giờ/ngày sai: Ngày bắt đầu không thể lớn hơn ngày kết thúc."
+          );
+          setLoading(false);
           return;
         }
         params.start_date = startDate;
@@ -502,9 +513,14 @@ export default function ManagerDashboard() {
     normalizedHours[0] || { hour: 0, check_ins: 0 }
   );
 
-  const paymentMethods = data?.revenue?.by_payment_method
-    ? Object.entries(data.revenue.by_payment_method)
-    : [];
+  const rawByMethod = data?.revenue?.by_payment_method || {};
+  const mergedByMethod = {};
+  Object.entries(rawByMethod).forEach(([method, amount]) => {
+    const key = method.toUpperCase() === "VNPAY" ? "CASH" : method.toUpperCase();
+    mergedByMethod[key] = (mergedByMethod[key] || 0) + Number(amount);
+  });
+
+  const paymentMethods = Object.entries(mergedByMethod);
 
   const occupancyColor =
     data?.occupancy?.occupancy_rate_percent >= 90
@@ -521,9 +537,8 @@ export default function ManagerDashboard() {
         : { label: language === "en" ? "Normal" : "Bình thường", cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40" };
 
   const donutSlices = [
-    { label: "VNPAY", value: data?.revenue?.by_payment_method?.VNPAY ?? 0, color: "#2563eb" },
-    { label: "PAYOS", value: data?.revenue?.by_payment_method?.PAYOS ?? 0, color: "#ef4444" },
-    { label: "CASH", value: data?.revenue?.by_payment_method?.CASH ?? 0, color: "#f59e0b" },
+    { label: "PAYOS", value: mergedByMethod.PAYOS ?? 0, color: "#ef4444" },
+    { label: "CASH", value: mergedByMethod.CASH ?? 0, color: "#f59e0b" },
   ];
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -595,7 +610,7 @@ export default function ManagerDashboard() {
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-955/20 text-blue-600 dark:text-blue-400 text-xs font-bold px-4 py-2 h-[34px] rounded-xl border border-blue-100 dark:border-blue-900/60 transition"
+              className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-955/20 text-blue-600 dark:text-blue-400 text-xs font-bold px-4 py-2 h-[34px] rounded-xl border border-blue-100 dark:border-blue-900/60 transition cursor-pointer"
             >
               {language === "en" ? "Apply" : "Áp dụng"}
             </button>
@@ -621,26 +636,26 @@ export default function ManagerDashboard() {
             {/* 1. Lượt xe vào */}
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center gap-1.5">
               <span className="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wider">
-                {language === "en" ? "Check-ins Today" : "Lượt xe vào"}
+                {language === "en" ? "Check-ins" : "Lượt xe vào"}
               </span>
               <span className="text-3xl sm:text-4xl font-black text-blue-600 dark:text-blue-400 my-0.5">
                 {data.vehicle_count.total_check_ins}
               </span>
               <span className="text-[10px] text-slate-400 font-medium">
-                {language === "en" ? "Total entries today" : "Tổng lượt vào hôm nay"}
+                {language === "en" ? "Total entries" : "Tổng lượt vào hôm nay"}
               </span>
             </div>
 
             {/* 2. Lượt xe ra */}
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center gap-1.5">
               <span className="text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wider">
-                {language === "en" ? "Check-outs Today" : "Lượt xe ra"}
+                {language === "en" ? "Check-outs" : "Lượt xe ra"}
               </span>
               <span className="text-3xl sm:text-4xl font-black text-rose-600 dark:text-rose-400 my-0.5">
                 {data.vehicle_count.total_check_outs}
               </span>
               <span className="text-[10px] text-slate-400 font-medium">
-                {language === "en" ? "Total exits today" : "Tổng lượt ra hôm nay"}
+                {language === "en" ? "Total exits" : "Tổng lượt ra hôm nay"}
               </span>
             </div>
 
@@ -1008,15 +1023,11 @@ export default function ManagerDashboard() {
                       ? Math.round((Number(amount) / Number(data.revenue.total)) * 100)
                       : 0;
                     const methodUpper = method.toUpperCase();
-                    const isVnpay = methodUpper === "VNPAY";
                     const isPayos = methodUpper === "PAYOS";
 
                     let iconColor = "text-amber-500";
                     let barColor = "bg-amber-500";
-                    if (isVnpay) {
-                      iconColor = "text-blue-500";
-                      barColor = "bg-blue-500";
-                    } else if (isPayos) {
+                    if (isPayos) {
                       iconColor = "text-red-500";
                       barColor = "bg-red-500";
                     }
@@ -1025,9 +1036,7 @@ export default function ManagerDashboard() {
                       <div key={method} className="space-y-1.5">
                         <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-slate-300">
                           <span className="flex items-center gap-1.5 font-bold">
-                            {isVnpay ? (
-                              <CreditCard size={12} className={iconColor} />
-                            ) : isPayos ? (
+                            {isPayos ? (
                               <Sparkles size={12} className={iconColor} />
                             ) : (
                               <Wallet size={12} className={iconColor} />

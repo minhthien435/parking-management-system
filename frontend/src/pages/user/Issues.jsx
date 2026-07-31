@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   Send,
   Star,
@@ -713,7 +714,7 @@ export default function Issues() {
       </div>
 
       {/* Lightbox Modal for Images */}
-      {lightboxImage && (
+      {lightboxImage && createPortal(
         <div
           className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-[99999] flex flex-col items-center justify-center p-4 cursor-zoom-out animate-fade-in"
           onClick={() => setLightboxImage(null)}
@@ -739,11 +740,12 @@ export default function Issues() {
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Attachment Preview Modal for Non-Images */}
-      {previewAttachment && (
+      {previewAttachment && createPortal(
         <div
           className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-[99999] flex flex-col items-center justify-center p-4 animate-fade-in"
           onClick={() => setPreviewAttachment(null)}
@@ -790,7 +792,8 @@ export default function Issues() {
               </a>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

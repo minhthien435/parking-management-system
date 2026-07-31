@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   AlertCircle, AlertTriangle, CheckCircle, Search, RefreshCw,
   Phone, Mail, Star, Paperclip, MessageSquare, Ticket, Clock,
@@ -498,8 +499,8 @@ function ViolationsSection({ language }) {
       )}
 
       {/* Detail Modal */}
-      {selectedLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+      {selectedLog && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in my-8">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
               <div>
@@ -639,13 +640,14 @@ function ViolationsSection({ language }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Lightbox */}
-      {lightboxImage && (
+      {lightboxImage && createPortal(
         <div
-          className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 cursor-zoom-out"
+          className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-[9999] flex flex-col items-center justify-center p-4 cursor-zoom-out"
           onClick={() => setLightboxImage(null)}
         >
           <div className="absolute top-5 right-5 text-slate-500 hover:text-slate-200 dark:text-slate-400 dark:hover:text-white bg-white/10 dark:bg-slate-900/60 p-2 rounded-full border border-slate-300 dark:border-slate-800 transition-colors">
@@ -657,7 +659,8 @@ function ViolationsSection({ language }) {
           >
             <img src={lightboxImage} alt="Full evidence" className="w-full h-auto max-h-[85vh] md:max-h-[88vh] object-contain" />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
