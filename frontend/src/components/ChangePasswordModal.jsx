@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Lock, Eye, EyeOff, ShieldCheck, RefreshCw } from "lucide-react";
 import api from "../utils/api";
 import { useLanguage } from "../hooks/useLanguage";
@@ -83,7 +84,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 font-sans antialiased">
       <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
 
@@ -218,6 +219,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

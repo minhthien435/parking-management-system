@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   DollarSign, Plus, Edit, Trash2, Calendar, RefreshCw,
   X, ShieldAlert, Bike, Car, Clock
@@ -476,8 +477,8 @@ export default function ManagerPricing() {
       )}
 
       {/* ADD PRICING POLICY MODAL */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
+      {isAddModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
           <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative animate-slide-in bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
             <button
               onClick={() => setIsAddModalOpen(false)}
@@ -664,12 +665,13 @@ export default function ManagerPricing() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* EDIT PRICING POLICY MODAL */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
+      {isEditModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
           <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative animate-slide-in bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
             <button
               onClick={() => setIsEditModalOpen(false)}
@@ -819,7 +821,8 @@ export default function ManagerPricing() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

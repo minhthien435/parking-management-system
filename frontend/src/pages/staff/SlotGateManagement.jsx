@@ -14,7 +14,7 @@ const t = {
     floorLabel: "Tầng",
     totalSlots: "Tổng số ô",
     available: "Còn trống",
-    occupied: "Có xe",
+    occupied: "Đang đỗ",
     reserved: "Đã đặt",
     maintenance: "Bảo trì",
     filters: "Bộ lọc",
@@ -970,7 +970,7 @@ export default function SlotGateManagementPage() {
                     <div>
                       <span className="text-xs font-semibold text-blue-500 uppercase block">{t[language].selectedSlot}</span>
                       <span className="text-base font-bold text-slate-900 dark:text-white">
-                        {activeSlot.slot_name} <span className="text-xs font-normal text-slate-505 dark:text-slate-400">(ID: {activeSlot.slot_id})</span>
+                        {activeSlot.slot_name}
                       </span>
                       <span className="text-xs text-slate-505 dark:text-slate-400 block">{activeSlot.zone} — {t[language].floorLabel} {activeSlot.floor}</span>
                     </div>

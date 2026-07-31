@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle, RefreshCcw, Eye, EyeOff, Phone, User, Mail, Lock, X } from "lucide-react";
 import googleIcon from "../assets/google.png";
@@ -619,8 +620,8 @@ export default function Register() {
       </div>
 
       {/* ─── Verify Email Modal ─────────────────────────────────────────────── */}
-      {isVerifyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      {isVerifyModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-6 relative animate-in zoom-in-95 duration-200">
             {/* Close Button */}
             <button
@@ -701,7 +702,8 @@ export default function Register() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

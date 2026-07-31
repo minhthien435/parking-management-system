@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import api from "../../utils/api";
 import { toast } from "sonner";
 import {
@@ -64,6 +65,7 @@ const t = {
     addZoneForFloor: "Tạo thêm Zone cho Tầng {floor}",
     editZone: "Sửa phân khu",
     deleteZone: "Xóa phân khu",
+    deleteSlot: "Xóa ô đỗ",
     zoneName: "Tên phân khu",
     capacityLabel: "Sức chứa",
     vehicleTypeLabel: "Loại xe",
@@ -142,6 +144,7 @@ const t = {
     addZoneForFloor: "Add Zone to Floor {floor}",
     editZone: "Edit Floor Zone",
     deleteZone: "Delete Floor Zone",
+    deleteSlot: "Delete Slot",
     zoneName: "Zone Name",
     capacityLabel: "Capacity",
     vehicleTypeLabel: "Vehicle Type",
@@ -420,8 +423,7 @@ function SlotCard({ slot, isSelected, onClick }) {
     >
       <div className="flex justify-between items-start">
         <div className="min-w-0">
-          <span className="text-sm font-bold truncate block">{slot.slot_name}</span>
-          <span className="text-[9px] opacity-75 font-semibold block mt-0.5 truncate">ID: {slot.slot_id}</span>
+          <span className="text-sm font-semibold truncate block">{slot.slot_name}</span>
         </div>
         <div className="flex items-center gap-0.5 ml-1 shrink-0 mt-0.5">
           {slot.is_electric_charging && (
@@ -686,12 +688,14 @@ export default function ManagerSlots() {
       const response = await api.get("/parking/zones/stats");
       if (Array.isArray(response.data)) {
         setZoneStats(response.data);
+        return response.data;
       }
     } catch (err) {
       console.error("Fetch Zone Stats Error:", err);
     } finally {
       setIsFetchingZones(false);
     }
+    return [];
   }, []);
 
   // ── Fetch Slots ───────────────────────────────────────────────────────────
@@ -867,9 +871,25 @@ export default function ManagerSlots() {
       return;
     }
 
+    const rawZoneName = createForm.zoneName.trim().toUpperCase();
+
+    // Check if zone letter already exists anywhere in the building
+    const existingZone = zoneStats.find(z => {
+      const zName = (z.zone_name ?? z.zoneName ?? "").toUpperCase();
+      return zName.includes(`ZONE ${rawZoneName}`) || zName.startsWith(`ZONE ${rawZoneName}`) || zName === rawZoneName;
+    });
+
+    if (existingZone) {
+      const existFloor = existingZone.floor_number ?? existingZone.floorNumber;
+      const errorMsg = language === "en"
+        ? `Zone '${rawZoneName}' already exists at Floor ${existFloor}. Zone letter must be unique.`
+        : `Phân khu '${rawZoneName}' đã tồn tại ở Tầng ${existFloor}. Tên phân khu phải là duy nhất trong bãi xe.`;
+      toast.error(errorMsg);
+      return;
+    }
+
     setFormSubmitting(true);
     try {
-      const rawZoneName = createForm.zoneName.trim();
       const response = await api.post("/parking/floors", {
         zone_name: rawZoneName,
         floor_number: finalFloorNumber,
@@ -894,7 +914,8 @@ export default function ManagerSlots() {
       }
     } catch (error) {
       console.error("Create zone error:", error);
-      toast.error(error.response?.data?.message || (language === "en" ? "Failed to create zone" : "Không thể tạo phân khu"));
+      const serverMsg = error.response?.data?.message;
+      toast.error(serverMsg || (language === "en" ? "Failed to create zone: Zone already exists." : "Không thể tạo phân khu: Zone đã tồn tại."));
     } finally {
       setFormSubmitting(false);
     }
@@ -974,23 +995,48 @@ export default function ManagerSlots() {
 
   const handleDeleteZoneSubmit = async () => {
     if (!zoneToDelete) return;
+
+    if (zoneToDelete.occupiedCount > 0 || zoneToDelete.bookedCount > 0) {
+      toast.error(
+        language === "en"
+          ? `Cannot delete zone: Zone "${zoneToDelete.zoneName}" has ${zoneToDelete.occupiedCount || 0} occupied and ${zoneToDelete.bookedCount || 0} reserved slots.`
+          : `Không thể xóa phân khu: Phân khu "${zoneToDelete.zoneName}" đang có ${zoneToDelete.occupiedCount || 0} ô đỗ đang đỗ xe và ${zoneToDelete.bookedCount || 0} ô đã đặt trước.`
+      );
+      return;
+    }
+
     setFormSubmitting(true);
     try {
+      const targetFloor = zoneToDelete.floorNumber;
       await api.delete(`/parking/floors/${zoneToDelete.zoneId}`);
       toast.success(language === "en" ? "Zone deleted successfully" : "Xóa phân khu thành công");
       setIsDeleteOpen(false);
       setZoneToDelete(null);
 
-      // Return to overview page
-      setSelectedFloorForDetails(null);
-      setSelectedFloor("");
-      setSelectedZone("");
-
-      await fetchZoneStats();
+      const latestStats = await fetchZoneStats();
       await fetchSlots();
+
+      // Check remaining zones on this floor
+      const remainingOnFloor = (latestStats || []).filter(
+        z => (z.floor_number ?? z.floorNumber) === targetFloor
+      );
+
+      if (remainingOnFloor.length === 0) {
+        // Exit to overview page ONLY if the deleted zone was the last one on this floor
+        setSelectedFloorForDetails(null);
+        setSelectedFloor("");
+        setSelectedZone("");
+      } else {
+        // Stay on the current floor details page
+        setSelectedZone("");
+      }
     } catch (error) {
       console.error("Delete zone error:", error);
-      toast.error(error.response?.data?.message || (language === "en" ? "Failed to delete zone" : "Không thể xóa phân khu"));
+      const serverMsg = error.response?.data?.message || error.response?.data?.Message || error.response?.data;
+      const defaultMsg = language === "en"
+        ? "Cannot delete zone: Phân khu này đang có ô đỗ được sử dụng hoặc đang đỗ xe."
+        : "Không thể xóa phân khu: Phân khu này đang có ô đỗ xe được sử dụng hoặc có xe đang đỗ.";
+      toast.error(typeof serverMsg === "string" ? serverMsg : defaultMsg);
     } finally {
       setFormSubmitting(false);
     }
@@ -1364,8 +1410,8 @@ export default function ManagerSlots() {
                   <div className="p-3 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-lg flex justify-between items-center">
                     <div>
                       <span className="text-xs font-semibold text-blue-500 uppercase block">{t[language].selectedSlot}</span>
-                      <span className="text-base font-bold text-slate-900 dark:text-white">
-                        {activeSlot.slot_name} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">(ID: {activeSlot.slot_id})</span>
+                      <span className="text-base font-semibold text-slate-900 dark:text-white">
+                        {activeSlot.slot_name}
                       </span>
                       <span className="text-xs text-slate-505 dark:text-slate-400 block">{activeSlot.zone} — {t[language].floorLabel} {activeSlot.floor}</span>
                     </div>
@@ -1454,7 +1500,7 @@ export default function ManagerSlots() {
                     <button
                       type="button"
                       onClick={() => handleDeleteSlotClick(activeSlot)}
-                      className="px-2.5 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-955/20 text-red-650 dark:text-red-400 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1 border border-red-200 dark:border-red-900/50"
+                      className="px-2.5 py-2 bg-red-500 hover:bg-red-600 dark:bg-red-955/20 text-white dark:text-red-400 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1 border border-red-200 dark:border-red-900/50"
                       title={t[language].deleteSlot}
                     >
                       <Trash2 size={13} />
@@ -1541,7 +1587,7 @@ export default function ManagerSlots() {
                             {t[language].cannotMaintainCapacityBulk}
                             {bulkCheck.violatedZones.map(vz => (
                               <div key={vz.zone} className="mt-1 font-bold">
-                                • {vz.zone}: {t[language].available.toLowerCase()} {vz.available}, {t[language].slotsSelectedLabel.toLowerCase()} {vz.requested}
+                                {vz.zone}: {t[language].available.toLowerCase()} {vz.available}, {t[language].slotsSelectedLabel.toLowerCase()} {vz.requested}
                               </div>
                             ))}
                           </div>
@@ -1593,7 +1639,7 @@ export default function ManagerSlots() {
                         {t[language].cannotDeleteSlotsWarning}
                         <div className="mt-1 max-h-16 overflow-y-auto font-bold space-y-0.5">
                           {bulkDeleteCheck.nonAvailableSlots.map(s => (
-                            <div key={s.slot_id}>• {s.slot_name} ({s.status})</div>
+                            <div key={s.slot_id}> - {s.slot_name} ({s.status})</div>
                           ))}
                         </div>
                       </div>
@@ -1641,9 +1687,9 @@ export default function ManagerSlots() {
       {/* ─── MODALS SYSTEM ─── */}
 
       {/* 1. Create Zone Modal */}
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+      {isCreateOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Plus size={16} className="text-blue-500" />
@@ -1651,20 +1697,18 @@ export default function ManagerSlots() {
                   ? t[language].addZoneForFloor.replace("{floor}", createForm.floorNumber)
                   : t[language].createFloorAndZone}
               </h3>
-              <button onClick={() => setIsCreateOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <button onClick={() => setIsCreateOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t[language].floorLabel}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">{t[language].floorLabel}</label>
                 {isFloorLocked ? (
-                  <div className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between cursor-not-allowed">
+                  <div className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-sm font-semibold text-slate-900 dark:text-white flex items-center justify-between cursor-not-allowed">
                     <span>{language === "en" ? `Floor ${createForm.floorNumber}` : `Tầng ${createForm.floorNumber}`}</span>
-                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-slate-500 font-semibold">
-                      {language === "en" ? "Locked" : "Cố định"}
-                    </span>
+
                   </div>
                 ) : (
                   <select
@@ -1679,14 +1723,14 @@ export default function ManagerSlots() {
                         setCreateForm({ ...createForm, floorNumber: val });
                       }
                     }}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none cursor-pointer"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-semibold"
                   >
                     {floorsData.map((f) => (
-                      <option key={f.floorNumber} value={f.floorNumber}>
+                      <option key={f.floorNumber} value={f.floorNumber} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">
                         {language === "en" ? `Floor ${f.floorNumber}` : `Tầng ${f.floorNumber}`}
                       </option>
                     ))}
-                    <option value="new">
+                    <option value="new" className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">
                       {language === "en" ? "+ Add new floor..." : "+ Thêm tầng mới..."}
                     </option>
                   </select>
@@ -1695,7 +1739,7 @@ export default function ManagerSlots() {
 
               {!isFloorLocked && isNewFloor && (
                 <div className="animate-in fade-in duration-200">
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
                     {language === "en" ? "New Floor Number" : "Số tầng mới"}
                   </label>
                   <input
@@ -1705,27 +1749,27 @@ export default function ManagerSlots() {
                     placeholder={language === "en" ? "e.g. 4" : "vd: 4"}
                     value={customFloorNumber}
                     onChange={(e) => setCustomFloorNumber(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t[language].zoneName}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">{t[language].zoneName}</label>
                 <select
                   value={createForm.zoneName}
                   onChange={(e) => setCreateForm({ ...createForm, zoneName: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none cursor-pointer font-semibold"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-semibold"
                 >
-                  <option value="">{language === 'en' ? "-- Select Letter --" : "-- Chọn ký tự --"}</option>
+                  <option value="" className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">{language === 'en' ? "-- Select Letter --" : "-- Chọn ký tự --"}</option>
                   {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(letter => (
-                    <option key={letter} value={letter}>{letter}</option>
+                    <option key={letter} value={letter} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">{letter}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t[language].capacityLabel}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">{t[language].capacityLabel}</label>
                 <input
                   type="number"
                   required
@@ -1733,19 +1777,19 @@ export default function ManagerSlots() {
                   max="100"
                   value={createForm.capacity}
                   onChange={(e) => setCreateForm({ ...createForm, capacity: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t[language].vehicleTypeLabel}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">{t[language].vehicleTypeLabel}</label>
                 <select
                   value={createForm.vehicleTypeId}
                   onChange={(e) => setCreateForm({ ...createForm, vehicleTypeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none cursor-pointer"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-semibold"
                 >
-                  <option value="1">{t[language].motorbike}</option>
-                  <option value="2">{t[language].car}</option>
+                  <option value="1" className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">{t[language].motorbike}</option>
+                  <option value="2" className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">{t[language].car}</option>
                 </select>
               </div>
 
@@ -1753,14 +1797,14 @@ export default function ManagerSlots() {
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 rounded-lg font-bold text-xs transition-colors"
+                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors border border-slate-200/80 dark:border-slate-700/60"
                 >
                   {t[language].cancelBtn}
                 </button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2 rounded-lg font-bold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2.5 rounded-lg font-semibold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
                   {formSubmitting && <RefreshCw size={13} className="animate-spin" />}
                   {isFloorLocked ? (language === "en" ? "Add Zone" : "Tạo thêm Zone") : t[language].createFloorAndZone}
@@ -1768,69 +1812,70 @@ export default function ManagerSlots() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 2. Edit Zone Modal */}
-      {isEditOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+      {isEditOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Edit size={16} className="text-blue-500" />
                 {t[language].editZone}
               </h3>
-              <button onClick={() => setIsEditOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <button onClick={() => setIsEditOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t[language].zoneName}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">{t[language].zoneName}</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Zone A"
                   value={editForm.zoneName}
                   onChange={(e) => setEditForm({ ...editForm, zoneName: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t[language].capacityLabel}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">{t[language].capacityLabel}</label>
                 <input
                   type="number"
                   required
                   min="1"
                   value={editForm.capacity}
                   onChange={(e) => setEditForm({ ...editForm, capacity: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t[language].vehicleTypeLabel}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">{t[language].vehicleTypeLabel}</label>
                 <select
                   value={editForm.vehicleTypeId}
                   onChange={(e) => setEditForm({ ...editForm, vehicleTypeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none cursor-pointer"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-semibold"
                 >
-                  <option value="1">{t[language].motorbike}</option>
-                  <option value="2">{t[language].car}</option>
+                  <option value="1" className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">{t[language].motorbike}</option>
+                  <option value="2" className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">{t[language].car}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">{t[language].statusLabel}</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">{t[language].statusLabel}</label>
                 <select
                   value={editForm.status}
                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm outline-none cursor-pointer"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer font-semibold"
                 >
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="MAINTENANCE">MAINTENANCE</option>
+                  <option value="ACTIVE" className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">ACTIVE</option>
+                  <option value="MAINTENANCE" className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">MAINTENANCE</option>
                 </select>
               </div>
 
@@ -1838,14 +1883,14 @@ export default function ManagerSlots() {
                 <button
                   type="button"
                   onClick={() => setIsEditOpen(false)}
-                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 rounded-lg font-bold text-xs transition-colors"
+                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors border border-slate-200/80 dark:border-slate-700/60"
                 >
                   {t[language].cancelBtn}
                 </button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2 rounded-lg font-bold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2.5 rounded-lg font-semibold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
                   {formSubmitting && <RefreshCw size={13} className="animate-spin" />}
                   {t[language].confirmUpdate}
@@ -1853,55 +1898,60 @@ export default function ManagerSlots() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 3. Delete Zone Modal */}
-      {isDeleteOpen && zoneToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+      {isDeleteOpen && zoneToDelete && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Trash2 className="text-red-500" size={18} />
               {t[language].deleteZoneConfirmTitle}
             </h3>
-            <p className="text-xs text-slate-505 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
               {t[language].deleteZoneConfirmDesc}
-              <span className="block mt-2 font-bold text-slate-850 dark:text-white">
-                {t[language].floorLabel} {zoneToDelete.floorNumber} • {zoneToDelete.zoneName}
+              <span className="block mt-2 font-semibold text-slate-900 dark:text-white">
+                {t[language].floorLabel} {zoneToDelete.floorNumber}: {zoneToDelete.zoneName}
               </span>
             </p>
+
+
+
             <div className="flex gap-3 pt-2">
               <button
                 disabled={formSubmitting}
                 onClick={() => setIsDeleteOpen(false)}
-                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 rounded-lg font-bold text-xs transition-colors"
+                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors border border-slate-200/80 dark:border-slate-700/60"
               >
                 {t[language].cancelBtn}
               </button>
               <button
                 disabled={formSubmitting}
                 onClick={handleDeleteZoneSubmit}
-                className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2 rounded-lg font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2.5 rounded-lg font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {formSubmitting && <RefreshCw size={13} className="animate-spin" />}
                 {t[language].deleteZone}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 4. Delete Slot Modal */}
-      {isDeleteSlotOpen && slotToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+      {isDeleteSlotOpen && slotToDelete && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Trash2 className="text-red-500" size={18} />
               {t[language].deleteSlotConfirmTitle}
             </h3>
-            <p className="text-xs text-slate-550 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
               {t[language].deleteSlotConfirmDesc}
-              <span className="block mt-2 font-bold text-slate-850 dark:text-white">
+              <span className="block mt-2 font-semibold text-slate-900 dark:text-white">
                 {slotToDelete.slot_name} ({slotToDelete.zone})
               </span>
             </p>
@@ -1909,38 +1959,39 @@ export default function ManagerSlots() {
               <button
                 disabled={formSubmitting}
                 onClick={() => setIsDeleteSlotOpen(false)}
-                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 rounded-lg font-bold text-xs transition-colors"
+                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors border border-slate-200/80 dark:border-slate-700/60"
               >
                 {t[language].cancelBtn}
               </button>
               <button
                 disabled={formSubmitting}
                 onClick={handleDeleteSlotSubmit}
-                className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2 rounded-lg font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2.5 rounded-lg font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {formSubmitting && <RefreshCw size={13} className="animate-spin" />}
                 {t[language].deleteSlot}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 4.5. Bulk Delete Slots Modal */}
-      {isDeleteBulkSlotsOpen && selectedSlotIds.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      {isDeleteBulkSlotsOpen && selectedSlotIds.length > 0 && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-155">
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Trash2 className="text-red-500" size={18} />
               {t[language].deleteBulkSlotsConfirmTitle}
             </h3>
-            <div className="text-xs text-slate-550 dark:text-slate-400 leading-relaxed">
+            <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
               <p>{t[language].deleteBulkSlotsConfirmDesc.replace("{count}", selectedSlotIds.length)}</p>
               <div className="mt-2.5 p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-100 dark:border-slate-800 max-h-24 overflow-y-auto flex flex-wrap gap-1">
                 {selectedSlotIds.map(id => {
                   const s = mappedSlots.find(x => x.slot_id === id);
                   return (
-                    <span key={id} className="text-[10px] font-bold px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-700 dark:text-slate-350">
+                    <span key={id} className="text-[10px] font-semibold px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-800 dark:text-slate-200">
                       {s?.slot_name || id}
                     </span>
                   );
@@ -1951,41 +2002,42 @@ export default function ManagerSlots() {
               <button
                 disabled={formSubmitting}
                 onClick={() => setIsDeleteBulkSlotsOpen(false)}
-                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 rounded-lg font-bold text-xs transition-colors"
+                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors border border-slate-200/80 dark:border-slate-700/60"
               >
                 {t[language].cancelBtn}
               </button>
               <button
                 disabled={formSubmitting}
                 onClick={handleBulkDeleteSlotsSubmit}
-                className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2 rounded-lg font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2.5 rounded-lg font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {formSubmitting && <RefreshCw size={13} className="animate-spin" />}
                 {language === 'en' ? 'Delete' : 'Xóa'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 5. Edit Slot Modal */}
-      {isEditSlotOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      {isEditSlotOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-155">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Edit size={16} className="text-blue-500" />
                 {t[language].editSlotTitle}
               </h3>
-              <button onClick={() => setIsEditSlotOpen(false)} className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200">
+              <button onClick={() => setIsEditSlotOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleEditSlotSubmit} className="space-y-4">
               <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-100 dark:border-slate-800">
-                <span className="text-xs text-slate-400 font-bold uppercase block">{t[language].selectedSlot}</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">{editSlotForm.slotName}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase block">{t[language].selectedSlot}</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-white">{editSlotForm.slotName}</span>
               </div>
 
               <div className="space-y-3">
@@ -1998,7 +2050,7 @@ export default function ManagerSlots() {
                     onChange={(e) => setEditSlotForm({ ...editSlotForm, isHandicap: e.target.checked })}
                     className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
                   />
-                  <label htmlFor="editIsHandicap" className="text-xs font-bold text-slate-500 uppercase select-none cursor-pointer">
+                  <label htmlFor="editIsHandicap" className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase select-none cursor-pointer">
                     {t[language].isHandicapLabel}
                   </label>
                 </div>
@@ -2012,7 +2064,7 @@ export default function ManagerSlots() {
                     onChange={(e) => setEditSlotForm({ ...editSlotForm, isElectricCharging: e.target.checked })}
                     className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
                   />
-                  <label htmlFor="editIsElectricCharging" className="text-xs font-bold text-slate-500 uppercase select-none cursor-pointer">
+                  <label htmlFor="editIsElectricCharging" className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase select-none cursor-pointer">
                     {t[language].isElectricChargingLabel}
                   </label>
                 </div>
@@ -2022,14 +2074,14 @@ export default function ManagerSlots() {
                 <button
                   type="button"
                   onClick={() => setIsEditSlotOpen(false)}
-                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 rounded-lg font-bold text-xs transition-colors"
+                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors border border-slate-200/80 dark:border-slate-700/60"
                 >
                   {t[language].cancelBtn}
                 </button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2 rounded-lg font-bold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white py-2.5 rounded-lg font-semibold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
                   {formSubmitting && <RefreshCw size={13} className="animate-spin" />}
                   {t[language].confirmUpdate}
@@ -2037,7 +2089,8 @@ export default function ManagerSlots() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

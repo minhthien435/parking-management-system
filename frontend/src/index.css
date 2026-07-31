@@ -7,7 +7,24 @@
 }
 
 body {
-  @apply bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
+  @apply bg-slate-50 text-slate-800 transition-colors duration-300;
+}
+.dark body {
+  @apply bg-slate-950 text-slate-100;
+}
+
+input, select, textarea {
+  @apply text-slate-900 placeholder-slate-400;
+}
+.dark input, .dark select, .dark textarea {
+  @apply text-slate-100 placeholder-slate-500;
+}
+
+option {
+  @apply bg-white text-slate-900;
+}
+.dark option {
+  @apply bg-slate-900 text-slate-100;
 }
 
 ::-webkit-scrollbar {
@@ -181,15 +198,16 @@ iframe.goog-te-banner-frame,
 }
 
 /* 2. Triệt tiêu tuyệt đối khoảng trống 40px mà Google chèn vào cả thẻ HTML và BODY */
-html {
+html, body {
   top: 0px !important;
   margin-top: 0px !important;
+  padding-top: 0px !important;
 }
 
 body {
-  top: 0px !important;
-  margin-top: 0px !important;
   position: static !important;
+  margin: 0 !important;
+  min-height: 100vh;
 }
 
 /* 3. Khóa toàn bộ hộp thoại pop-up text gốc khi di chuột vào chữ đã dịch */

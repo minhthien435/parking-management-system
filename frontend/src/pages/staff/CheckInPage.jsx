@@ -33,7 +33,7 @@ const t = {
         entrySessionHeader: "Thông tin phiên vào",
         readyToScan: "Sẵn sàng quét",
         pressEnterToStart: "Kéo thả ảnh hoặc click để chọn ảnh xe.",
-        licensePlate: "Biển kiểm soát",
+        licensePlate: "Biển số xe",
         type: "Loại xe",
         assignedZone: "Phân khu chỉ định",
         checkInTimeLabel: "Giờ vào",
@@ -526,7 +526,7 @@ export default function CheckInPage() {
                             }
                         }}
                         onClick={() => fileInputRef.current?.click()}
-                        className={`relative border-2 border-dashed flex-1 min-h-[220px] max-h-[360px] sm:min-h-[280px] lg:min-h-0 flex flex-col items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 rounded-md ${isDragOver
+                        className={`relative border-2 border-dashed flex-1 w-full min-h-[300px] flex flex-col items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 rounded-md ${isDragOver
                             ? "border-blue-500 bg-blue-50/20 dark:bg-blue-950/20"
                             : isLoading
                                 ? "border-blue-500 bg-blue-50/5 dark:bg-blue-950/5 shadow-md shadow-blue-500/10"
@@ -550,11 +550,11 @@ export default function CheckInPage() {
                         />
 
                         {capturedImage ? (
-                            <div className="relative w-full h-full max-h-[350px] group flex items-center justify-center bg-slate-950 overflow-hidden">
+                            <div className="relative w-full h-full min-h-[300px] group flex items-center justify-center bg-slate-950 overflow-hidden">
                                 <img
                                     src={capturedImage}
                                     alt="Uploaded Vehicle"
-                                    className="max-w-full max-h-[340px] w-auto h-auto object-contain"
+                                    className="absolute inset-0 m-auto max-w-full max-h-full w-auto h-auto object-contain p-2"
                                 />
                                 <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                     <button

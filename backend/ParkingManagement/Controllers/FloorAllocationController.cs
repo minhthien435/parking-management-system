@@ -46,9 +46,21 @@ public class FloorAllocationController : ControllerBase
             return BadRequest(ApiResponse<object>.Fail(string.Join("; ", errors)));
         }
 
-        var data = await _service.UpdateAllocationAsync(zoneId, request);
-        return Ok(ApiResponse<UpdateFloorAllocationResponse>.Ok(data, "Floor allocation updated successfully."));
+        try
+        {
+            var data = await _service.UpdateAllocationAsync(zoneId, request);
+            return Ok(ApiResponse<UpdateFloorAllocationResponse>.Ok(data, "Floor allocation updated successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(ex.Message));
+        }
     }
+
     // POST /api/v1/parking/floors
     [Authorize(Roles = "ParkingManager")]
     [HttpPost]
@@ -64,9 +76,21 @@ public class FloorAllocationController : ControllerBase
             return BadRequest(ApiResponse<object>.Fail(string.Join("; ", errors)));
         }
 
-        var data = await _service.CreateZoneAsync(BuildingId, request);
-        return StatusCode(201, ApiResponse<FloorZoneResponse>.Ok(data, "Floor zone created successfully."));
+        try
+        {
+            var data = await _service.CreateZoneAsync(BuildingId, request);
+            return StatusCode(201, ApiResponse<FloorZoneResponse>.Ok(data, "Floor zone created successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(ex.Message));
+        }
     }
+
     // DELETE /api/v1/parking/floors/{zoneId}
     [Authorize(Roles = "ParkingManager")]
     [HttpDelete("{zoneId:int}")]
@@ -75,7 +99,18 @@ public class FloorAllocationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> DeleteZone(int zoneId)
     {
-        await _service.DeleteZoneAsync(zoneId);
-        return NoContent();
+        try
+        {
+            await _service.DeleteZoneAsync(zoneId);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(ex.Message));
+        }
     }
 }

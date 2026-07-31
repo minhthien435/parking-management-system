@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, UserPlus, Edit, Lock, Unlock, Shield, X, Mail, Phone, RefreshCw, Eye, EyeOff, AlertTriangle, MoreVertical } from 'lucide-react'
 import { toast } from 'sonner'
 import api from '../../utils/api'
@@ -526,8 +527,8 @@ export default function ManagerStaff() {
       {/* ============================================================
           ADD STAFF MODAL
          ============================================================ */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {isAddModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative animate-slide-in border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <button
               onClick={() => setIsAddModalOpen(false)}
@@ -684,14 +685,15 @@ export default function ManagerStaff() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ============================================================
           EDIT STAFF MODAL
          ============================================================ */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {isEditModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative animate-slide-in border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <button
               onClick={() => setIsEditModalOpen(false)}
@@ -785,14 +787,15 @@ export default function ManagerStaff() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ============================================================
           CONFIRM STATUS CHANGE MODAL (Dropdown selector for ACTIVE, INACTIVE, BANNED)
          ============================================================ */}
-      {isConfirmModalOpen && staffToToggle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      {isConfirmModalOpen && staffToToggle && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="card w-full max-w-md shadow-2xl relative animate-slide-in border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
             <button
               onClick={() => {
@@ -860,7 +863,8 @@ export default function ManagerStaff() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

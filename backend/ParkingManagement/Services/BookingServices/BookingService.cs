@@ -550,7 +550,7 @@ public class BookingService : IBookingService
                 PaymentType = "BOOKING",
                 AmountDue = remainingAmount,
                 AmountPaid = remainingAmount,
-                PaymentMethod = "VNPAY", // Booking payments are VNPAY-only
+                PaymentMethod = "PAYOS", // Booking online payments default to PAYOS
                 PaymentTime = DateTime.UtcNow,
                 Status = "SUCCESS",
                 BookingId = booking.BookingId,

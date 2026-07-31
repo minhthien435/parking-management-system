@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import {
     FileQuestion, ScanFace, Clock, ClipboardList,
@@ -1172,9 +1173,9 @@ export default function StaffIncidentHandling() {
                 </div>
             )}
             {/* LIGHTBOX MODAL OVERLAY */}
-            {lightboxImage && (
+            {lightboxImage && createPortal(
                 <div
-                    className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 cursor-zoom-out"
+                    className="fixed inset-0 bg-slate-950/80 dark:bg-slate-950/90 backdrop-blur-md z-[9999] flex flex-col items-center justify-center p-4 cursor-zoom-out"
                     onClick={() => setLightboxImage(null)}
                 >
                     <div className="absolute top-5 right-5 text-slate-500 hover:text-slate-200 dark:text-slate-400 dark:hover:text-white bg-white/10 dark:bg-slate-900/60 p-2 rounded-full border border-slate-300 dark:border-slate-800 transition-colors">
@@ -1188,7 +1189,8 @@ export default function StaffIncidentHandling() {
                             </p>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

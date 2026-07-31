@@ -175,34 +175,7 @@ export default function MyBookings() {
     const status = params.get("status");
     const cancelParam = params.get("cancel");
     const code = params.get("code");
-    const vnpResponseCode = params.get("vnp_ResponseCode");
-
-    if (vnpResponseCode) {
-      if (vnpResponseCode === "00") {
-        const payload = {
-          vnp_Amount: params.get("vnp_Amount"),
-          vnp_ResponseCode: vnpResponseCode,
-          vnp_TxnRef: params.get("vnp_TxnRef"),
-          vnp_SecureHash: params.get("vnp_SecureHash") || "mock_hash"
-        };
-        api.post("/payments/webhook/vnpay", payload)
-          .then(() => {
-            loadBookingDashboard();
-            window.history.replaceState({}, document.title, window.location.pathname);
-          })
-          .catch((err) => {
-            console.error("Lỗi xác nhận VNPay:", err);
-            loadBookingDashboard();
-            window.history.replaceState({}, document.title, window.location.pathname);
-          });
-      } else {
-        toast.error(language === "en" ? "Payment Failed" : "Thanh toán thất bại", {
-          description: language === "en" ? "Payment failed or cancelled." : "Thanh toán thất bại hoặc đã bị hủy."
-        });
-        loadBookingDashboard();
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    } else if (cancelParam === "true" || status === "CANCELLED" || status === "cancelled") {
+    if (cancelParam === "true" || status === "CANCELLED" || status === "cancelled") {
       toast.error(language === "en" ? "Payment Cancelled" : "Hủy thanh toán", {
         description: language === "en" ? "PayOS payment was cancelled." : "Thanh toán PayOS đã bị hủy bỏ."
       });
@@ -468,7 +441,7 @@ export default function MyBookings() {
     try {
       const payload = {
         booking_id: selectedBooking.id,
-        payment_method: "VNPAY"
+        payment_method: "PAYOS"
       };
 
       const res = await api.post("/payments/confirm-mock", payload);
@@ -1840,27 +1813,6 @@ export default function MyBookings() {
                       </p>
                     </div>
                   </div>
-
-                  {/* VNPAY Mock Option */}
-                  <div
-                    onClick={() => setPaymentMethod("VNPAY")}
-                    className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center gap-4 ${paymentMethod === "VNPAY"
-                      ? "border-blue-500 bg-blue-50/20 dark:bg-blue-950/20 shadow-lg shadow-blue-500/10"
-                      : "border-slate-200 dark:border-slate-800 bg-transparent hover:border-slate-350 dark:hover:border-slate-700"
-                      }`}
-                  >
-                    <div className={`p-3 rounded-xl ${paymentMethod === "VNPAY" ? "bg-blue-500/10 text-blue-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400"}`}>
-                      <CreditCard size={24} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-800 dark:text-white text-sm">
-                        {language === "en" ? "VNPAY (Mock)" : "VNPAY Giả lập (Nhanh)"}
-                      </p>
-                      <p className="text-[10px] text-slate-400">
-                        {language === "en" ? "Instant simulated successful payment" : "Mô phỏng thanh toán thành công tức thì"}
-                      </p>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="flex gap-3">
@@ -1869,7 +1821,7 @@ export default function MyBookings() {
                   </button>
                   <button
                     disabled={processingPayment}
-                    onClick={paymentMethod === "PAYOS" ? handlePayOsPayment : handleConfirmMockPayment}
+                    onClick={handlePayOsPayment}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-1.5"
                   >
                     {processingPayment ? (
