@@ -13,7 +13,6 @@ import {
   ChevronRight,
   RefreshCw,
   AlertCircle,
-  Share2,
   Navigation,
   ExternalLink,
   Car,
@@ -79,6 +78,7 @@ export default function UserDashboard() {
 
   const [pricingPolicy, setPricingPolicy] = useState([]);
   const [floors, setFloors] = useState([]);
+  const [reviewStats, setReviewStats] = useState({ average_rating: 0, total_reviews: 0 });
 
   // ==========================================
   // FETCH REALTIME DATA
@@ -143,6 +143,16 @@ export default function UserDashboard() {
           }
         } catch (floorsErr) {
           console.error("Failed to load floors allocation:", floorsErr);
+        }
+
+        try {
+          const reviewsRes = await api.get("/feedbacks/summary");
+          if (reviewsRes.data?.success) {
+            setReviewStats(reviewsRes.data.data);
+          }
+        } catch (reviewsErr) {
+          console.error("Failed to load review summary:", reviewsErr);
+          setReviewStats({ average_rating: 0, total_reviews: 0 });
         }
 
         // Fetch user's bookings to show the most recent session
@@ -365,8 +375,8 @@ export default function UserDashboard() {
           <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300">
             <div className="flex items-center gap-1.5">
               <Star size={14} className="fill-amber-400 text-amber-400" />
-              <span className="font-bold text-white">4.9</span>
-              <span className="text-slate-400 text-xs">(142 {language === "en" ? "Reviews" : "đánh giá"})</span>
+              <span className="font-bold text-white">{reviewStats.average_rating ? reviewStats.average_rating.toFixed(1) : "0.0"}</span>
+              <span className="text-slate-400 text-xs">({reviewStats.total_reviews} {language === "en" ? "Reviews" : "đánh giá"})</span>
             </div>
             <div className="flex items-center gap-1.5">
               <MapPin size={14} className="text-blue-400 shrink-0" />
@@ -378,12 +388,6 @@ export default function UserDashboard() {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 mt-4">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 backdrop-blur border border-white/20 text-white text-xs font-bold px-3 py-2 rounded-xl transition">
-              <Share2 size={13} />
-              {language === "en" ? "Share" : "Chia sẻ"}
-            </button>
             {availableSlotsCount > 0 ? (
               <button
                 type="button"

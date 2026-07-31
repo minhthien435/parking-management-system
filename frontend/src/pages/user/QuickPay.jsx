@@ -499,29 +499,12 @@ export default function SessionLookup() {
                       <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest">
                         {language === "en" ? "Select Payment Method" : "Chọn phương thức thanh toán"}
                       </p>
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* PayOS Card */}
+                      <div className="grid grid-cols-1 gap-3">
                         <div
-                          onClick={() => !loadingPay && setPaymentMethod("PAYOS")}
-                          className={`cursor-pointer rounded-2xl p-3 border transition-all flex flex-col items-center justify-center gap-1.5 ${paymentMethod === "PAYOS"
-                            ? "bg-white border-white text-blue-800 shadow-md"
-                            : "bg-blue-800/40 border-blue-600/30 text-blue-200 hover:bg-blue-800/60"
-                            }`}
+                          className="rounded-2xl p-3 border bg-white text-blue-800 shadow-md flex flex-col items-center justify-center gap-1.5"
                         >
                           <CreditCard size={16} />
                           <span className="text-[11px] font-bold">VietQR (PayOS)</span>
-                        </div>
-
-                        {/* Mock Card */}
-                        <div
-                          onClick={() => !loadingPay && setPaymentMethod("MOCK")}
-                          className={`cursor-pointer rounded-2xl p-3 border transition-all flex flex-col items-center justify-center gap-1.5 ${paymentMethod === "MOCK"
-                            ? "bg-white border-white text-blue-800 shadow-md"
-                            : "bg-blue-800/40 border-blue-600/30 text-blue-200 hover:bg-blue-800/60"
-                            }`}
-                        >
-                          <Info size={16} />
-                          <span className="text-[11px] font-bold">{language === "en" ? "Mock Test" : "Thử nghiệm (Mock)"}</span>
                         </div>
                       </div>
                     </>
@@ -537,7 +520,7 @@ export default function SessionLookup() {
                     ) : (
                       <CreditCard size={17} />
                     )}
-                    {language === "en" ? "Pay & Exit Now" : "Thanh toán & Ra xe"}
+                    {language === "en" ? "Pay now" : "Thanh toán & Ra xe"}
                   </button>
                 </div>
               </div>

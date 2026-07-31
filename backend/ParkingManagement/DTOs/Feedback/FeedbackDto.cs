@@ -36,10 +36,17 @@ namespace ParkingManagement.DTOs.Feedback
         public string? ResolvedBy { get; set; }
         public string? ResolvedByName { get; set; }
         public string? ResponseNote { get; set; }
+        public int? StarRating { get; set; }
         public string? CustomerPhone { get; set; }
         public string? CustomerEmail { get; set; }
         public string? AttachmentUrl { get; set; }
 
+    }
+
+    public class FeedbackSummaryDto
+    {
+        public int TotalReviews { get; set; }
+        public double AverageRating { get; set; }
     }
 
     public class ProcessFeedbackRequestDto

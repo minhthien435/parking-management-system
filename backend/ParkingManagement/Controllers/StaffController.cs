@@ -10,6 +10,8 @@ using ParkingManagement.Services.EmailServices;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace ParkingManagement.Controllers
 {
@@ -374,11 +376,11 @@ namespace ParkingManagement.Controllers
                 return BadRequest(new { success = false, message = "User is not a staff member" });
             }
 
-            var validStatuses = new[] { "ACTIVE", "INACTIVE", "BANNED" };
+            var validStatuses = new[] { "ACTIVE", "BANNED" };
             var newStatus = request.Status.ToUpper();
             if (!validStatuses.Contains(newStatus))
             {
-                return BadRequest(new { success = false, message = "Invalid status value. Must be ACTIVE, INACTIVE, or BANNED" });
+                return BadRequest(new { success = false, message = "Invalid status value. Must be ACTIVE or BANNED" });
             }
 
             if (newStatus == "BANNED" && staff.Status != "BANNED")
@@ -396,6 +398,50 @@ namespace ParkingManagement.Controllers
                         message = "Cannot ban this staff member because they have an active parking session in progress. Please wait until it is completed first."
                     });
                 }
+
+                var managerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                              ?? User.FindFirst("sub")?.Value
+                              ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+                if (string.IsNullOrEmpty(managerId))
+                {
+                    var systemAdmin = await _context.Users.Where(u => u.RoleId == 1).Select(u => u.UserId).FirstOrDefaultAsync();
+                    managerId = systemAdmin ?? "usr_260601085134364";
+                }
+
+                var banLog = new UserBanLog
+                {
+                    TargetUserId = userId,
+                    ActionBy = managerId,
+                    Action = "BANNED",
+                    Reason = "Banned by manager.",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.UserBanLogs.Add(banLog);
+            }
+            else if (staff.Status == "BANNED" && newStatus != "BANNED")
+            {
+                var managerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                              ?? User.FindFirst("sub")?.Value
+                              ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+                if (string.IsNullOrEmpty(managerId))
+                {
+                    var systemAdmin = await _context.Users.Where(u => u.RoleId == 1).Select(u => u.UserId).FirstOrDefaultAsync();
+                    managerId = systemAdmin ?? "usr_260601085134364";
+                }
+
+                var unbanLog = new UserBanLog
+                {
+                    TargetUserId = userId,
+                    ActionBy = managerId,
+                    Action = "UNBANNED",
+                    Reason = "Unbanned by manager.",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.UserBanLogs.Add(unbanLog);
             }
 
             staff.Status = newStatus;

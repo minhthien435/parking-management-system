@@ -81,6 +81,7 @@ namespace ParkingManagement.Services.FeedbackServices
                                     : (u.Email != null && u.Email.Contains("@") ? u.Email.Substring(0, u.Email.IndexOf("@")) : u.Email)))
                             .FirstOrDefault(),
                     ResponseNote = f.ResponseNote,
+                    StarRating = f.StarRating,
                     CustomerPhone = f.CustomerPhone,
                     CustomerEmail = f.CustomerEmail,
                     AttachmentUrl = f.AttachmentUrl
@@ -140,11 +141,30 @@ namespace ParkingManagement.Services.FeedbackServices
                                     : (u.Email != null && u.Email.Contains("@") ? u.Email.Substring(0, u.Email.IndexOf("@")) : u.Email)))
                             .FirstOrDefault(),
                     ResponseNote = f.ResponseNote,
+                    StarRating = f.StarRating,
                     CustomerEmail = f.CustomerEmail,
                     CustomerPhone = f.CustomerPhone,
                     AttachmentUrl = f.AttachmentUrl
                 }).ToListAsync();
             return oldFeedbacks;
+        }
+
+        public async Task<FeedbackSummaryDto> GetFeedbackSummaryAsync()
+        {
+            var feedbacks = await _context.Feedbacks
+                .Where(f => f.StarRating != null)
+                .ToListAsync();
+
+            var totalReviews = feedbacks.Count;
+            var averageRating = totalReviews > 0
+                ? Math.Round(feedbacks.Average(f => f.StarRating.Value), 1)
+                : 0.0;
+
+            return new FeedbackSummaryDto
+            {
+                TotalReviews = totalReviews,
+                AverageRating = averageRating
+            };
         }
     }
 }

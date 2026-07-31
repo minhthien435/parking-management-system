@@ -8,5 +8,6 @@ namespace ParkingManagement.Services.FeedbackServices
         Task<(List<FeedbackDto> Items, int TotalItems, int TotalPages)> GetAllFeedbacksAsync(string? status, bool isManager, int page, int pageSize);
         Task<bool> ProcessFeedbackAsync(int feedbackId, string managerId, ProcessFeedbackRequestDto request);
         Task<List<FeedbackDto>> GetMyFeedbacksAsync(string userId);
+        Task<FeedbackSummaryDto> GetFeedbackSummaryAsync();
     }
 }

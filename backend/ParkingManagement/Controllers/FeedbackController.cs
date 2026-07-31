@@ -130,6 +130,18 @@ namespace ParkingManagement.Controllers
         }
 
         // ==========================================
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetFeedbackSummary()
+        {
+            var summary = await _feedbackService.GetFeedbackSummaryAsync();
+            return Ok(new
+            {
+                success = true,
+                data = summary
+            });
+        }
+
+        // ==========================================
         // 5. UPLOAD FILE ĐÍNH KÈM PHẢN HỒI
         // ==========================================
         [HttpPost("upload")]
