@@ -27,7 +27,9 @@ namespace ParkingManagement.Services
             if (booking == null) throw new Exception("Không tìm thấy thông tin đặt chỗ.");
 
             int vehicleTypeId = booking.VehicleTypeId;
-            decimal realAmount = await _paymentRepository.GetBasePriceForVehicleTypeAsync(vehicleTypeId);
+            var policy = await _paymentRepository.GetActivePricingPolicyByVehicleTypeAsync(vehicleTypeId);
+            DateTime expiredAt = booking.ExpiredAt ?? booking.ExpectedArrival.AddHours(2);
+            decimal realAmount = ParkingCalculationHelper.CalculateBookingEstimatedFee(booking.ExpectedArrival, expiredAt, policy);
 
             string hexPart = Guid.NewGuid().ToString().Substring(0, 8);
             string paymentId = "pay_" + hexPart;

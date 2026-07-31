@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner'
 import api from '../../utils/api'
 import { useLanguage } from '../../hooks/useLanguage'
+import { getToastMsg } from '../../utils/toastHelper'
 
 const getTodayStr = () => {
   const d = new Date()
@@ -118,13 +119,13 @@ export default function ManagerPricing() {
       })
 
       if (response.data && response.data.success) {
-        toast.success(response.data.message || (language === 'en' ? 'Pricing policy configured successfully' : 'Đã cấu hình giá thành công'))
+        toast.success(getToastMsg(response.data.message, 'Pricing policy configured successfully', 'Đã cấu hình giá thành công', language))
         setIsAddModalOpen(false)
         fetchPolicies()
       }
     } catch (error) {
       console.error('Add policy error:', error)
-      toast.error(error.response?.data?.message || (language === 'en' ? 'Failed to configure pricing policy' : 'Lỗi khi cấu hình bảng giá'))
+      toast.error(getToastMsg(error.response?.data?.message, 'Failed to configure pricing policy', 'Lỗi khi cấu hình bảng giá', language))
     } finally {
       setFormSubmitting(false)
     }
@@ -178,13 +179,13 @@ export default function ManagerPricing() {
       })
 
       if (response.data && response.data.success) {
-        toast.success(response.data.message || (language === 'en' ? 'Pricing policy updated successfully' : 'Cập nhật chính sách giá thành công'))
+        toast.success(getToastMsg(response.data.message, 'Pricing policy updated successfully', 'Cập nhật chính sách giá thành công', language))
         setIsEditModalOpen(false)
         fetchPolicies()
       }
     } catch (error) {
       console.error('Update policy error:', error)
-      toast.error(error.response?.data?.message || (language === 'en' ? 'Failed to update pricing policy' : 'Lỗi khi cập nhật chính sách giá'))
+      toast.error(getToastMsg(error.response?.data?.message, 'Failed to update pricing policy', 'Lỗi khi cập nhật chính sách giá', language))
     } finally {
       setFormSubmitting(false)
     }
@@ -200,7 +201,7 @@ export default function ManagerPricing() {
       fetchPolicies()
     } catch (error) {
       console.error('Delete policy error:', error)
-      toast.error(error.response?.data?.message || (language === 'en' ? 'Failed to delete pricing policy' : 'Lỗi khi xóa chính sách giá'))
+      toast.error(getToastMsg(error.response?.data?.message, 'Failed to delete pricing policy', 'Lỗi khi xóa chính sách giá', language))
     }
   }
 
@@ -212,6 +213,14 @@ export default function ManagerPricing() {
     // Sort descending by effective date
     typePolicies.sort((a, b) => new Date(b.effective_date) - new Date(a.effective_date))
     return typePolicies[0]
+  }
+
+  const getScheduledPolicyForType = (typeId) => {
+    const today = getTodayStr()
+    const scheduled = policies.filter(p => p.vehicle_type_id === typeId && p.effective_date > today)
+    if (scheduled.length === 0) return null
+    scheduled.sort((a, b) => new Date(a.effective_date) - new Date(b.effective_date))
+    return scheduled[0]
   }
 
   const getPolicyStatus = (policy) => {
@@ -238,8 +247,6 @@ export default function ManagerPricing() {
 
   return (
     <div className="animate-slide-in flex flex-col space-y-6">
-
-
       {loading || typesLoading ? (
         <div className="flex flex-col items-center justify-center flex-1 py-16 gap-3">
           <RefreshCw size={32} className="animate-spin text-blue-500" />
@@ -251,8 +258,6 @@ export default function ManagerPricing() {
         <>
           {/* ACTIVE RATES CARDS GRID */}
           <div>
-
-
             {vehicleTypes.length === 0 ? (
               <div className="card text-center py-10">
                 <p className="text-slate-400">{language === 'en' ? 'No vehicle types defined.' : 'Chưa có phân loại xe nào.'}</p>
@@ -265,6 +270,7 @@ export default function ManagerPricing() {
 
                   return (
                     <div
+                      key={type.vehicle_type_id}
                       className={`card relative overflow-hidden transition-all duration-300 hover:shadow-lg border`}
                     >
                       <div className="flex justify-between items-start mb-5">
@@ -352,16 +358,18 @@ export default function ManagerPricing() {
                               </span>
                             </div>
 
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-2">
                               <button
                                 onClick={() => openEditModal(activePolicy)}
                                 className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500 rounded transition-colors"
+                                title={language === 'en' ? 'Edit' : 'Điều chỉnh'}
                               >
                                 <Edit size={14} />
                               </button>
                               <button
                                 onClick={() => handleDeletePolicy(activePolicy.policy_id)}
                                 className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 rounded transition-colors"
+                                title={language === 'en' ? 'Delete' : 'Xóa bản ghi'}
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -399,8 +407,26 @@ export default function ManagerPricing() {
                 <h3 className="text-sm font-bold text-slate-800 dark:text-white">
                   {language === 'en' ? 'Pricing Schedules & Adjustment History' : 'Lịch trình điều chỉnh & Lịch sử giá vé'}
                 </h3>
-
               </div>
+              <button
+                onClick={() => {
+                  setAddForm({
+                    vehicleTypeId: vehicleTypes[0]?.vehicle_type_id?.toString() || '',
+                    basePrice: 10000,
+                    baseHours: 4,
+                    subsequentRate: 2000,
+                    subsequentHours: 1,
+                    dailyMaxPrice: 50000,
+                    handlingFee: 20000,
+                    effectiveDate: getTodayStr()
+                  })
+                  setIsAddModalOpen(true)
+                }}
+                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <Plus size={14} />
+                <span>{language === 'en' ? 'Create New Pricing Policy' : 'Tạo bảng giá mới'}</span>
+              </button>
             </div>
 
             {policies.length === 0 ? (
@@ -422,6 +448,7 @@ export default function ManagerPricing() {
                       <th className="table-header text-xs">{language === 'en' ? 'Lost Card Penalty' : 'Phí mất thẻ'}</th>
                       <th className="table-header text-xs">{language === 'en' ? 'Effective Date' : 'Ngày hiệu lực'}</th>
                       <th className="table-header text-xs">{language === 'en' ? 'Status' : 'Trạng thái'}</th>
+                      <th className="table-header text-xs text-right">{language === 'en' ? 'Actions' : 'Hành động'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -429,7 +456,6 @@ export default function ManagerPricing() {
                       .sort((a, b) => new Date(b.effective_date) - new Date(a.effective_date))
                       .map((policy) => {
                         const statusInfo = getPolicyStatus(policy);
-                        const isCar = policy.vehicle_type_name?.toLowerCase().includes('car') || policy.vehicle_type_name?.toLowerCase().includes('ô tô');
 
                         return (
                           <tr
@@ -438,7 +464,6 @@ export default function ManagerPricing() {
                           >
                             <td className="table-cell">
                               <div className="flex items-center gap-2">
-
                                 <span className="font-semibold text-xs text-slate-800 dark:text-slate-200">
                                   {policy.vehicle_type_name || `Type ${policy.vehicle_type_id}`}
                                 </span>
@@ -464,7 +489,24 @@ export default function ManagerPricing() {
                                 {statusInfo.label}
                               </span>
                             </td>
-
+                            <td className="table-cell text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => openEditModal(policy)}
+                                  className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
+                                  title={language === 'en' ? 'Edit policy' : 'Sửa bản ghi này'}
+                                >
+                                  <Edit size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePolicy(policy.policy_id)}
+                                  className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
+                                  title={language === 'en' ? 'Delete policy' : 'Xóa bản ghi này'}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         );
                       })}

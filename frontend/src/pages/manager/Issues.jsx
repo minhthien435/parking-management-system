@@ -25,6 +25,35 @@ const getImageUrl = (url) => {
 const formatVnd = (amount) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 
+const parsePlatesFromLog = (log) => {
+  if (!log) return { correctPlate: '—', wrongPlate: '—' }
+
+  let correctPlate = log.corrected_plate || log.license_plate_in || '—'
+  let wrongPlate = log.original_plate || '—'
+
+  if (log.description) {
+    const fromToMatch = log.description.match(/(?:từ|from)\s+([A-Z0-9.\-]+)\s+(?:thành|to)\s+([A-Z0-9.\-]+)/i)
+    if (fromToMatch) {
+      wrongPlate = fromToMatch[1].trim()
+      correctPlate = fromToMatch[2].trim()
+    }
+  }
+
+  if (wrongPlate === '—' && log.license_plate_out && log.license_plate_out !== correctPlate) {
+    wrongPlate = log.license_plate_out
+  }
+
+  return { correctPlate, wrongPlate }
+}
+
+const cleanDescription = (desc) => {
+  if (!desc) return ''
+  return desc
+    .replace(/\[OriginalPlate:\s*[^\]]+\]/gi, '')
+    .replace(/\[CorrectedPlate:\s*[^\]]+\]/gi, '')
+    .trim()
+}
+
 // ─── Feedbacks Section ────────────────────────────────────────────────────────
 function FeedbacksSection({ language }) {
   const [feedbacks, setFeedbacks] = useState([])
@@ -446,8 +475,8 @@ function ViolationsSection({ language }) {
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-semibold text-slate-700 dark:text-slate-300">
                     {displayList.map(log => (
-                      <tr 
-                        key={log.log_id} 
+                      <tr
+                        key={log.log_id}
                         className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors cursor-pointer"
                         onClick={() => setSelectedLog(log)}
                       >
@@ -457,7 +486,7 @@ function ViolationsSection({ language }) {
                         </td>
                         <td className="py-2.5 text-slate-800 dark:text-slate-300">{log.reporter_name}</td>
                         <td className="py-2.5 text-slate-500 font-normal">{new Date(log.report_time).toLocaleString()}</td>
-                        <td className="py-2.5 text-slate-500 font-normal max-w-xs truncate" title={log.description}>{log.description}</td>
+                        <td className="py-2.5 text-slate-500 font-normal max-w-xs truncate" title={cleanDescription(log.description)}>{cleanDescription(log.description)}</td>
                         <td className="py-2.5 text-center">
                           <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-455 text-[9px] font-black uppercase tracking-wider rounded border border-emerald-100 dark:border-emerald-900/40">
                             {log.status}
@@ -560,23 +589,34 @@ function ViolationsSection({ language }) {
                     </div>
 
                     {/* Plates comparison */}
-                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 pb-1.5">
-                      <span className="text-slate-400">
-                        {selectedLog.issue_type === 'WRONG_SLOT'
-                          ? (language === 'en' ? 'Correct Plate' : 'Biển số đúng')
-                          : (language === 'en' ? 'Plate In' : 'Biển lúc vào')}
-                      </span>
-                      <span className="font-sans font-extrabold text-slate-800 dark:text-white text-xs">{selectedLog.license_plate_in || '—'}</span>
-                    </div>
+                    {(() => {
+                      const plates = parsePlatesFromLog(selectedLog);
+                      return (
+                        <>
+                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 pb-1.5">
+                            <span className="text-slate-400">
+                              {selectedLog.issue_type === 'WRONG_SLOT'
+                                ? (language === 'en' ? 'Correct Plate' : 'Biển số đúng')
+                                : (language === 'en' ? 'Plate In' : 'Biển lúc vào')}
+                            </span>
+                            <span className="font-sans font-extrabold text-emerald-600 dark:text-emerald-400 text-xs">
+                              {selectedLog.issue_type === 'WRONG_SLOT' ? plates.correctPlate : (selectedLog.license_plate_in || '—')}
+                            </span>
+                          </div>
 
-                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 pb-1.5">
-                      <span className="text-slate-400">
-                        {selectedLog.issue_type === 'WRONG_SLOT'
-                          ? (language === 'en' ? 'Incorrect Plate' : 'Biển số sai')
-                          : (language === 'en' ? 'Plate Out' : 'Biển lúc ra')}
-                      </span>
-                      <span className="font-sans font-extrabold text-slate-800 dark:text-white text-xs">{selectedLog.license_plate_out || '—'}</span>
-                    </div>
+                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 pb-1.5">
+                            <span className="text-slate-400">
+                              {selectedLog.issue_type === 'WRONG_SLOT'
+                                ? (language === 'en' ? 'Incorrect Plate' : 'Biển số sai')
+                                : (language === 'en' ? 'Plate Out' : 'Biển lúc ra')}
+                            </span>
+                            <span className="font-sans font-extrabold text-red-500 text-xs">
+                              {selectedLog.issue_type === 'WRONG_SLOT' ? plates.wrongPlate : (selectedLog.license_plate_out || '—')}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Action/Description Box */}
@@ -585,7 +625,7 @@ function ViolationsSection({ language }) {
                       {language === 'en' ? 'Action / Description' : 'Hành động / Mô tả'}
                     </span>
                     <p className="font-semibold text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                      {selectedLog.description}
+                      {cleanDescription(selectedLog.description)}
                     </p>
                   </div>
                 </div>

@@ -31,7 +31,7 @@ public class FloorAllocationRepository : IFloorAllocationRepository
     public Task<List<FloorZone>> GetAllByBuildingAsync(string buildingId) =>
         _db.FloorZones
            .Include(z => z.VehicleType)
-           .Where(z => z.BuildingId == buildingId)
+           .Where(z => z.BuildingId == buildingId && z.Status != "DELETED")
            .OrderBy(z => z.FloorNumber)
            .ThenBy(z => z.ZoneName)
            .ToListAsync();
@@ -39,14 +39,14 @@ public class FloorAllocationRepository : IFloorAllocationRepository
     public Task<FloorZone?> GetByIdAsync(int zoneId) =>
         _db.FloorZones
            .Include(z => z.VehicleType)
-           .FirstOrDefaultAsync(z => z.ZoneId == zoneId);
+           .FirstOrDefaultAsync(z => z.ZoneId == zoneId && z.Status != "DELETED");
 
     public Task<VehicleType?> GetVehicleTypeAsync(int vehicleTypeId) =>
         _db.VehicleTypes.FirstOrDefaultAsync(v => v.VehicleTypeId == vehicleTypeId);
 
     public Task<int> CountActiveVehiclesAsync(int zoneId) =>
         _db.ParkingSessions
-           .CountAsync(s => s.ZoneId == zoneId &&
+           .CountAsync(s => (s.ZoneId == zoneId || (s.Slot != null && s.Slot.ZoneId == zoneId)) &&
                             s.Status == "ACTIVE");
 
     public Task<bool> HasActiveBookingsAsync(int zoneId) =>
@@ -60,13 +60,13 @@ public class FloorAllocationRepository : IFloorAllocationRepository
         if (building == null) return;
 
         int activeFloors = await _db.FloorZones
-            .Where(z => z.BuildingId == buildingId)
+            .Where(z => z.BuildingId == buildingId && z.Status != "DELETED")
             .Select(z => z.FloorNumber)
             .Distinct()
             .CountAsync();
 
         int totalSlots = await _db.FloorZones
-            .Where(z => z.BuildingId == buildingId)
+            .Where(z => z.BuildingId == buildingId && z.Status != "DELETED")
             .SumAsync(z => z.Capacity);
 
         if (building.TotalFloors != activeFloors || building.TotalSlots != totalSlots)
@@ -119,7 +119,7 @@ public class FloorAllocationRepository : IFloorAllocationRepository
 
         var buildingZones = await _db.FloorZones
             .Include(z => z.VehicleType)
-            .Where(z => z.BuildingId == buildingId)
+            .Where(z => z.BuildingId == buildingId && z.Status != "DELETED")
             .ToListAsync();
 
         return buildingZones.FirstOrDefault(z =>
@@ -137,33 +137,30 @@ public class FloorAllocationRepository : IFloorAllocationRepository
     {
         string? buildingId = zoneId.BuildingId;
 
-        // Nullify ZoneId reference in bookings
-        var bookings = await _db.Bookings.Where(b => b.ZoneId == zoneId.ZoneId).ToListAsync();
-        foreach (var b in bookings)
+        // Ensure database ENUM columns allow 'DELETED'
+        try
         {
-            b.ZoneId = null;
+            await _db.Database.ExecuteSqlRawAsync("ALTER TABLE floor_zones MODIFY COLUMN STATUS enum('ACTIVE','MAINTENANCE','DELETED') DEFAULT 'ACTIVE';");
+            await _db.Database.ExecuteSqlRawAsync("ALTER TABLE parking_slot MODIFY COLUMN STATUS enum('AVAILABLE','OCCUPIED','RESERVED','MAINTENANCE','DELETED') DEFAULT 'AVAILABLE';");
+        }
+        catch
+        {
+            // Ignore if already altered
         }
 
-        // Nullify ZoneId reference in parking sessions
-        var sessions = await _db.ParkingSessions.Where(s => s.ZoneId == zoneId.ZoneId).ToListAsync();
-        foreach (var s in sessions)
-        {
-            s.ZoneId = null;
-        }
+        // Soft delete the zone so historic parking sessions and bookings retain their Zone reference & name
+        zoneId.Status = "DELETED";
+        zoneId.AvailableCapacity = 0;
+        _db.FloorZones.Update(zoneId);
 
+        // Soft delete slots instead of purging them from DB to prevent foreign key errors with historic parking sessions
         var slots = await _db.ParkingSlots.Where(s => s.ZoneId == zoneId.ZoneId).ToListAsync();
-
-        // Nullify SlotId reference in parking sessions for slots in this zone
-        var slotIds = slots.Select(s => s.SlotId).ToList();
-        var sessionsWithSlots = await _db.ParkingSessions.Where(s => s.SlotId != null && slotIds.Contains(s.SlotId)).ToListAsync();
-        foreach (var s in sessionsWithSlots)
+        foreach (var slot in slots)
         {
-            s.SlotId = null;
+            slot.Status = "DELETED";
         }
+        _db.ParkingSlots.UpdateRange(slots);
 
-        _db.ParkingSlots.RemoveRange(slots);
- 
-        _db.FloorZones.Remove(zoneId);
         await _db.SaveChangesAsync();
 
         if (!string.IsNullOrEmpty(buildingId))

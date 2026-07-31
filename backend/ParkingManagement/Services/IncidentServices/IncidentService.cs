@@ -133,12 +133,16 @@ namespace ParkingManagement.Services
             {
                 throw new InvalidOperationException("LICENSE_PLATE_ALREADY_ACTIVE_IN_ANOTHER_SESSION");
             }
+            string origPlate = dto.OriginalLicensePlate.Trim().ToUpper();
+            string corrPlate = dto.CorrectedLicensePlate.Trim().ToUpper();
+            string userReason = !string.IsNullOrWhiteSpace(dto.Reason) ? dto.Reason.Trim() : "Sai lệch biển số";
+
             var incident = new IncidentLog
             {
                 SessionId = currentSession.SessionId,
                 ReportedBy = staffId,
                 IssueType = "WRONG_SLOT",
-                Description = dto.Reason ?? $"Sửa đổi biển số từ {dto.OriginalLicensePlate} thành {dto.CorrectedLicensePlate}.",
+                Description = $"[OriginalPlate:{origPlate}] [CorrectedPlate:{corrPlate}] Sửa đổi biển số từ {origPlate} thành {corrPlate}. Lý do: {userReason}",
                 ReportTime = correctionTime,
                 Status = "RESOLVED"
             };

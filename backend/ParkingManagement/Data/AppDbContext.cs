@@ -139,7 +139,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.FloorNumber).HasColumnName("FLOOR_NUMBER");
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'ACTIVE'")
-                .HasColumnType("enum('ACTIVE','MAINTENANCE')")
+                .HasColumnType("enum('ACTIVE','MAINTENANCE','DELETED')")
                 .HasColumnName("STATUS");
             entity.Property(e => e.VehicleTypeId).HasColumnName("VEHICLE_TYPE_ID");
             entity.Property(e => e.ZoneName)
@@ -403,7 +403,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("SLOT_NAME");
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'AVAILABLE'")
-                .HasColumnType("enum('AVAILABLE','OCCUPIED','RESERVED','MAINTENANCE')")
+                .HasColumnType("enum('AVAILABLE','OCCUPIED','RESERVED','MAINTENANCE','DELETED')")
                 .HasColumnName("STATUS");
             entity.Property(e => e.ZoneId).HasColumnName("ZONE_ID");
 

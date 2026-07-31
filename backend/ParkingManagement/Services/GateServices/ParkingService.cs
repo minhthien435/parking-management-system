@@ -829,59 +829,46 @@ namespace ParkingManagement.Services
 
             decimal currentFee = await CalculateCurrentFeeForSessionAsync(session, currentTime);
 
-            if (dto.PaymentMethod?.ToUpper() == "PAYOS")
+            string hexPart = Guid.NewGuid().ToString().Substring(0, 8);
+            string paymentId = "pay_" + hexPart;
+
+            var payment = new Payment
             {
-                string hexPart = Guid.NewGuid().ToString().Substring(0, 8);
-                string paymentId = "pay_" + hexPart;
+                PaymentId = paymentId,
+                PaymentType = "SESSION",
+                SessionId = session.SessionId,
+                AmountDue = currentFee,
+                AmountPaid = 0,
+                ChangeDue = 0,
+                PaymentMethod = "PAYOS",
+                Status = "PENDING",
+                UserId = userId,
+                PaymentTime = null
+            };
 
-                var payment = new Payment
-                {
-                    PaymentId = paymentId,
-                    PaymentType = "SESSION",
-                    SessionId = session.SessionId,
-                    AmountDue = currentFee,
-                    AmountPaid = 0,
-                    ChangeDue = 0,
-                    PaymentMethod = "PAYOS",
-                    Status = "PENDING",
-                    UserId = userId,
-                    PaymentTime = null
-                };
+            await _parkingRepository.CreatePaymentAsync(payment);
 
-                await _parkingRepository.CreatePaymentAsync(payment);
+            long orderCode = Convert.ToInt64(hexPart, 16);
+            string returnUrl = (dto.ReturnUrl ?? "http://localhost:5173/user/quick-pay?status=success").Trim();
+            string cancelUrl = (dto.CancelUrl ?? "http://localhost:5173/user/quick-pay?status=cancelled").Trim();
 
-                long orderCode = Convert.ToInt64(hexPart, 16);
-                string returnUrl = (dto.ReturnUrl ?? "http://localhost:5173/user/quick-pay?status=success").Trim();
-                string cancelUrl = (dto.CancelUrl ?? "http://localhost:5173/user/quick-pay?status=cancelled").Trim();
-
-                var paymentRequestData = new PayOS.Models.V2.PaymentRequests.CreatePaymentLinkRequest
-                {
-                    OrderCode = orderCode,
-                    Amount = (long)currentFee,
-                    Description = "Thanh toan phi do xe",
-                    ReturnUrl = returnUrl,
-                    CancelUrl = cancelUrl
-                };
-
-                var createPaymentResult = await _payOS.PaymentRequests.CreateAsync(paymentRequestData);
-
-                return new
-                {
-                    success = true,
-                    payment_method = "PAYOS",
-                    payment_url = createPaymentResult.CheckoutUrl
-                };
-            }
-            else
+            var paymentRequestData = new PayOS.Models.V2.PaymentRequests.CreatePaymentLinkRequest
             {
-                await _parkingRepository.MarkSessionPaidAsync(session, currentFee, VnNow.AddMinutes(15));
-                return new
-                {
-                    success = true,
-                    payment_method = "MOCK",
-                    message = "Thanh toán QuickPay thành công. Bạn có 15 phút để ra khỏi bãi xe."
-                };
-            }
+                OrderCode = orderCode,
+                Amount = (long)currentFee,
+                Description = "Thanh toan phi do xe",
+                ReturnUrl = returnUrl,
+                CancelUrl = cancelUrl
+            };
+
+            var createPaymentResult = await _payOS.PaymentRequests.CreateAsync(paymentRequestData);
+
+            return new
+            {
+                success = true,
+                payment_method = "PAYOS",
+                payment_url = createPaymentResult.CheckoutUrl
+            };
         }
 
         public async Task<ActiveSessionResponseDto> GetActiveSessionBySlotNameAsync(string slotName)

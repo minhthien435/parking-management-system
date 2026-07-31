@@ -495,17 +495,23 @@ export default function SessionLookup() {
                     </div>
                   ) : (
                     <>
-                      {/* Payment Method Selector */}
+                      {/* Payment Method Banner (PayOS VietQR) */}
                       <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest">
-                        {language === "en" ? "Select Payment Method" : "Chọn phương thức thanh toán"}
+                        {language === "en" ? "Payment Gateway" : "Cổng thanh toán"}
                       </p>
-                      <div className="grid grid-cols-1 gap-3">
-                        <div
-                          className="rounded-2xl p-3 border bg-white text-blue-800 shadow-md flex flex-col items-center justify-center gap-1.5"
-                        >
-                          <CreditCard size={16} />
-                          <span className="text-[11px] font-bold">VietQR (PayOS)</span>
+                      <div className="bg-blue-800/40 border border-blue-600/30 rounded-2xl p-3.5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-white text-blue-800 flex items-center justify-center font-bold shadow-sm">
+                            <CreditCard size={18} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-white">VietQR (PayOS)</p>
+                            <p className="text-[10px] text-blue-200">{language === "en" ? "Scan QR code to pay via Banking App" : "Quét mã QR thanh toán bằng ứng dụng Ngân hàng"}</p>
+                          </div>
                         </div>
+                        <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                          {language === "en" ? "Online" : "Trực tuyến"}
+                        </span>
                       </div>
                     </>
                   )}
