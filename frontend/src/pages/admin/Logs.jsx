@@ -214,62 +214,60 @@ export default function AdminLogs() {
   };
 
   const handleExport = () => {
+    const BOM = "\uFEFF";
     if (activeTab === "role") {
-      const csvContent =
-        "data:text/csv;charset=utf-8," +
-        ["ID,Timestamp,Operator,Target User,Previous Role,New Role,Message"]
-          .concat(
-            filteredLogs.map(
-              (l) =>
-                `"${l.id}","${l.timestamp}","${l.operator}","${l.details?.targetUserId || ""}","${l.details?.previousRole || ""}","${l.details?.newRole || ""}","${l.message.replace(/"/g, '""')}"`
-            )
+      const rows = ["ID,Timestamp,Operator,Target User,Previous Role,New Role,Message"]
+        .concat(
+          filteredLogs.map((l) =>
+            `"${l.id}","${l.timestamp}","${l.operator}","${l.details?.targetUserId || ""}","${l.details?.previousRole || ""}","${l.details?.newRole || ""}","${l.message.replace(/"/g, '""')}"`
           )
-          .join("\n");
-      const encodedUri = encodeURI(csvContent);
+        );
+      const csv = BOM + rows.join("\n");
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
+      link.href = url;
       link.setAttribute("download", `pms_role_audit_logs_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       toast.success(language === "en" ? "CSV report downloaded!" : "Báo cáo CSV tải xuống thành công!");
     } else if (activeTab === "ban") {
-      const csvContent =
-        "data:text/csv;charset=utf-8," +
-        ["Log ID,Timestamp,Operator,Target User,Reason,Message"]
-          .concat(
-            filteredBanLogs.map(
-              (l) =>
-                `"${l.id}","${l.timestamp}","${l.operator}","${l.details?.targetUserId || ""}","${(l.details?.reason || "").replace(/"/g, '""')}","${l.message.replace(/"/g, '""')}"`
-            )
+      const rows = ["Log ID,Timestamp,Operator,Target User,Reason,Message"]
+        .concat(
+          filteredBanLogs.map((l) =>
+            `"${l.id}","${l.timestamp}","${l.operator}","${l.details?.targetUserId || ""}","${(l.details?.reason || "").replace(/"/g, '""')}","${l.message.replace(/"/g, '""')}"`
           )
-          .join("\n");
-      const encodedUri = encodeURI(csvContent);
+        );
+      const csv = BOM + rows.join("\n");
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
+      link.href = url;
       link.setAttribute("download", `pms_ban_logs_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       toast.success(language === "en" ? "CSV report downloaded!" : "Báo cáo CSV tải xuống thành công!");
     } else {
-      const csvContent =
-        "data:text/csv;charset=utf-8," +
-        ["Log ID,Timestamp,Level,Source,Message"]
-          .concat(
-            filteredSystemLogs.map(
-              (l) =>
-                `"${l.log_id}","${l.created_at || ""}","${l.log_level}","${(l.source || "").replace(/"/g, '""')}","${l.message.replace(/"/g, '""')}"`
-            )
+      const rows = ["Log ID,Timestamp,Level,Source,Message"]
+        .concat(
+          filteredSystemLogs.map((l) =>
+            `"${l.log_id}","${l.created_at || ""}","${l.log_level}","${(l.source || "").replace(/"/g, '""')}","${l.message.replace(/"/g, '""')}"`
           )
-          .join("\n");
-      const encodedUri = encodeURI(csvContent);
+        );
+      const csv = BOM + rows.join("\n");
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
+      link.href = url;
       link.setAttribute("download", `pms_system_logs_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       toast.success(language === "en" ? "CSV report downloaded!" : "Báo cáo CSV tải xuống thành công!");
     }
   };
