@@ -135,14 +135,14 @@ namespace ParkingManagement.Services
             }
             string origPlate = dto.OriginalLicensePlate.Trim().ToUpper();
             string corrPlate = dto.CorrectedLicensePlate.Trim().ToUpper();
-            string userReason = !string.IsNullOrWhiteSpace(dto.Reason) ? dto.Reason.Trim() : "Sai lệch biển số";
+            string userReason = !string.IsNullOrWhiteSpace(dto.Reason) ? dto.Reason.Trim() : "Plate mismatch";
 
             var incident = new IncidentLog
             {
                 SessionId = currentSession.SessionId,
                 ReportedBy = staffId,
                 IssueType = "WRONG_SLOT",
-                Description = $"[OriginalPlate:{origPlate}] [CorrectedPlate:{corrPlate}] Sửa đổi biển số từ {origPlate} thành {corrPlate}. Lý do: {userReason}",
+                Description = $"[OriginalPlate:{origPlate}] [CorrectedPlate:{corrPlate}] Corrected license plate from {origPlate} to {corrPlate}. Reason: {userReason}",
                 ReportTime = correctionTime,
                 Status = "RESOLVED"
             };
@@ -160,7 +160,7 @@ namespace ParkingManagement.Services
             return new MismatchCorrectionResponseDto
             {
                 Success = true,
-                Message = $"Nhận diện sai lệch biển số {dto.OriginalLicensePlate} đã được sửa đổi thành công thành {dto.CorrectedLicensePlate}.",
+                Message = $"The license plate mismatch for {dto.OriginalLicensePlate} has been corrected to {dto.CorrectedLicensePlate}.",
                 Data = new MismatchCorrectionDataDto
                 {
                     IncidentLogId = incident.LogId,

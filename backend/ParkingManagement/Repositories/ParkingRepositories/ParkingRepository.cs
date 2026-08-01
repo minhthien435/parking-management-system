@@ -7,6 +7,7 @@ using ParkingManagement.Data;
 using ParkingManagement.Models;
 using ParkingManagement.DTOs;
 using ParkingManagement.Services.Helpers;
+using ParkingManagement.Utils;
 
 namespace ParkingManagement.Repositories
 {
@@ -23,9 +24,11 @@ namespace ParkingManagement.Repositories
         public async Task<bool> IsVehicleActiveInParkingAsync(string licensePlate)
         {
             if (string.IsNullOrWhiteSpace(licensePlate)) return false;
+            var normalizedPlate = ValidationUtils.NormalizeLicensePlate(licensePlate);
 
             return await _context.ParkingSessions
-                .AnyAsync(s => s.LicensePlateIn == licensePlate && s.Status == "ACTIVE");
+                .AnyAsync(s => s.Status == "ACTIVE"
+                    && s.LicensePlateIn.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() == normalizedPlate);
         }
 
         // Zone-based capacity management

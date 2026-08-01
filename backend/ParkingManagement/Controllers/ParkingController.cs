@@ -92,17 +92,17 @@ namespace ParkingManagement.Controllers
                 {
                     success = false,
                     error_code = "ACTIVE_SESSION_EXISTS",
-                    message = "Xe hiện đang ở trong bãi, vui lòng kiểm tra lại biển số."
+                    message = "A vehicle with this license plate is already inside the parking lot."
                 });
             }
             catch (InvalidOperationException ex) when (ex.Message == "NO_AVAILABLE_SLOT")
             {
-                // Trả về 422 Unprocessable Entity theo bảng Business Error định nghĩa
+                // Return 422 Unprocessable Entity for business rule violation
                 return StatusCode(StatusCodes.Status422UnprocessableEntity, new
                 {
                     success = false,
                     error_code = "NO_AVAILABLE_SLOT",
-                    message = "Bãi xe đã đầy chỗ cho loại phương tiện này."
+                    message = "No available parking space is currently available for this vehicle type."
                 });
             }
             catch (KeyNotFoundException ex) when (ex.Message == "NO_VALID_BOOKING_FOUND_FOR_THIS_PLATE")
