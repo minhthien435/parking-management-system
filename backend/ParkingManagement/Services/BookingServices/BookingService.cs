@@ -181,8 +181,8 @@ public class BookingService : IBookingService
         // Check for vehicle type consistency for this license plate
         await ValidationUtils.ValidateVehicleTypeConsistencyAsync(_context, request.LicensePlate, request.VehicleTypeId);
 
-        // Validate license plate format and check for duplicate bookings
-        var cleanPlate = request.LicensePlate.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper();
+        // Normalize the plate for all comparisons and storage
+        var cleanPlate = ValidationUtils.NormalizeLicensePlate(request.LicensePlate);
 
         var vnExpectedArrival = ToVnTime(request.ExpectedArrival);
         var vnExpiredAt = ToVnTime(expiredAt);
@@ -195,7 +195,7 @@ public class BookingService : IBookingService
 
         if (isOverlappingBookingExists)
         {
-            throw new InvalidOperationException("Biển số xe này đã có lịch đặt chỗ trùng lặp trong khoảng thời gian đã chọn.");
+            throw new InvalidOperationException("This license plate already has an overlapping booking during the selected time.");
         }
 
         // Validate license plate is not already active in parking lot

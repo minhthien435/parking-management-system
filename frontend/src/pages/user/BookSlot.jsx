@@ -630,8 +630,8 @@ export default function BookSlot() {
       }
       setBookingError(msg);
 
-      if (msg.includes("đã được đăng ký cho loại phương tiện") || msg.includes("đã có lịch đặt chỗ trùng lặp")) {
-        if (msg.includes("trùng lặp")) {
+      if (msg.includes("đã được đăng ký cho loại phương tiện") || msg.includes("đã có lịch đặt chỗ trùng lặp") || msg.includes("already has an active booking") || msg.includes("overlapping booking")) {
+        if (msg.includes("trùng lặp") || msg.includes("overlapping booking")) {
           setConflictType("duplicate");
         } else if (msg.includes("Xe máy")) {
           setConflictType("type_motorbike");
