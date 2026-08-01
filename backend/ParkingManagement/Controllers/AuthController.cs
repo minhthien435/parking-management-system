@@ -625,18 +625,27 @@ namespace ParkingManagement.Controllers.AuthController
 
             /* -- Validation -- */
 
-            // Dò tìm xem có tài khoản nào khác đã sử dụng Email mà người dùng đang muốn cập nhật
-            // bool isEmailTaken = _context.Users.Any(u => u.Email == request.Email && u.UserId != userId);
-            // if (isEmailTaken)
-            // {
-            //     return BadRequest(new
-            //     {
-            //         success = false,
-            //         message = "This Email is already taken by another account"
-            //     });
-            // }
+            if (!ValidationUtils.IsValidFullName(request.FullName))
+            {
+                return UnprocessableEntity(new
+                {
+                    success = false,
+                    error_code = "VALIDATION_ERROR",
+                    message = "Invalid input fullname"
+                });
+            }
+
 
             // Dò tìm xem có tài khoản nào khác đã sử dụng SĐT mà người dùng đang muốn cập nhật
+            if (!ValidationUtils.IsValidPhoneNumber(request.Phone))
+            {
+                return UnprocessableEntity(new
+                {
+                    success = false,
+                    error_code = "VALIDATION_ERROR",
+                    message = "Invalid input phone number"
+                });
+            }
             bool isPhoneTaken = _context.Users.Any(u => u.Phone == request.Phone && u.UserId != userId);
             if (isPhoneTaken)
             {
@@ -672,9 +681,7 @@ namespace ParkingManagement.Controllers.AuthController
                 userInDb.AvatarUrl = $"/uploads/avatars/{fileName}";
             }
 
-            // userInDb.Username = request.Username;
             userInDb.FullName = request.FullName;
-            // userInDb.Email = request.Email;
             userInDb.Phone = request.Phone;
             _context.SaveChanges();
 

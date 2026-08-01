@@ -41,6 +41,12 @@ namespace ParkingManagement.Utils
             if (string.IsNullOrWhiteSpace(licensePlate)) return string.Empty;
             return Regex.Replace(licensePlate.ToUpperInvariant(), "[^A-Z0-9]", "");
         }
+        public static bool IsValidFullName(string fullName)
+        {
+            if (string.IsNullOrWhiteSpace(fullName)) return false;
+            string fullNamePattern = @"^[\p{L}\s]+$";                           // Hỗ trợ tiếng Việt và khoảng trắng
+            return Regex.IsMatch(fullName, fullNamePattern);
+        }
 
         public static async Task ValidateVehicleTypeConsistencyAsync(AppDbContext context, string licensePlate, int vehicleTypeId)
         {
